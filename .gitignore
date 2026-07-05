@@ -1,0 +1,15 @@
+# Python / uv
+.venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Rust
+rust_cli_implementation/target/
+
+# the Rust bridge's throwaway virtualenv (created by scripts/catan-server.sh)
+rust_cli_implementation/catan-server/.venv/
+
+# Editor / OS cruft
+*.swp
+.DS_Store

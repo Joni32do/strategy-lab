@@ -1,0 +1,19 @@
+[project]
+name = "strategy-lab"
+version = "0.1.0"
+description = "Strategy Lab — design the policy, don't play the moves. Catan runs on the catanatron engine."
+requires-python = ">=3.11"
+dependencies = [
+    "catanatron",
+    "flask",
+    "flask-cors",
+]
+
+# catanatron is vendored in this repo; install it editable from the local path so
+# the engine source under catanatron/ drives every Catan rule.
+[tool.uv.sources]
+catanatron = { path = "catanatron", editable = true }
+
+# strategy-lab itself is an application, not a library to build/install.
+[tool.uv]
+package = false

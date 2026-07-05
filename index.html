@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Strategy Lab — solve the game, don't play it</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧪</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- core engine first, then one file per game, then the UI.
+       To add a game: drop a file into js/games/ and add a script tag here. -->
+  <script src="js/engine.js"></script>
+  <script src="js/games/tictactoe.js"></script>
+  <script src="js/games/snakes.js"></script>
+  <script src="js/games/maedn.js"></script>
+  <script src="js/games/monopoly.js"></script>
+  <!-- Catan is no longer a local JS game: it runs on the real catanatron engine.
+       See catan.html + js/catan-lab.js + server/app.py. -->
+  <script src="js/ui.js"></script>
+  <script>UI.init();</script>
+</body>
+</html>

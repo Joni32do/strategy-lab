@@ -1,0 +1,28 @@
+[package]
+name = "high-level"
+version = "0.1.0"
+edition = "2021"
+description = "Strategy Lab, rebuilt in Rust — three lenses on solved games: strategy-card discovery, value-function RL, and symmetry abstraction."
+license = "MIT"
+
+[[bin]]
+name = "high-level"
+path = "src/main.rs"
+
+[lib]
+name = "high_level"
+path = "src/lib.rs"
+
+# Kept deliberately tiny: a terminal backend + a TUI framework, plus serde_json
+# for the one thing that can't be hand-rolled — talking to the real catanatron
+# engine over its small HTTP API (the Catan view). The HTTP itself is hand-rolled
+# (std::net), so serde_json is the only added surface. Everything else (RNG, RL,
+# symmetry group, the TTT/Nim rules) stays dependency-free.
+[dependencies]
+ratatui = "0.26"
+crossterm = "0.27"
+serde_json = "1"
+
+[profile.release]
+opt-level = 3
+lto = "thin"

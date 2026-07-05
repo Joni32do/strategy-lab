@@ -1,0 +1,6 @@
+[submodule "catanatron"]
+	path = catanatron
+	url = https://github.com/bcollazo/catanatron.git
+[submodule "rust_cli_implementation/catanatron"]
+	path = rust_cli_implementation/catanatron
+	url = https://github.com/bcollazo/catanatron.git

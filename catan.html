@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catan Lab — catanatron strategy &amp; trade tuner</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏝️</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/catan-lab.css">
+</head>
+<body>
+  <div class="cl-wrap">
+    <div class="cl-top">
+      <h1>Catan <span class="grad">Lab</span></h1>
+      <span class="cl-badge">engine: <b>catanatron</b></span>
+      <div class="spacer"></div>
+      <span id="conn" class="cl-badge">connecting…</span>
+      <a class="cl-back" href="index.html">← Strategy Lab</a>
+    </div>
+
+    <div class="cl-grid">
+      <!-- LEFT: tuner + simulate -->
+      <div>
+        <div class="panel" id="tuner">
+          <h2>Position metric &amp; trade coefficient</h2>
+          <p class="desc">Your policy plays catanatron's value function, but trades through a
+            <b>state-dependent</b> brain: it judges every swap by relative gain and a non-linear
+            coefficient λ on the opponent's position strength. Tune them; the curve is live.</p>
+
+          <div class="group-label">Position-strength metric</div>
+          <div id="metric-sliders"></div>
+
+          <div class="group-label">Playing strategy</div>
+          <div id="strategy-sliders"></div>
+
+          <div class="group-label">Trade coefficient λ(opponent strength)</div>
+          <div class="curve-box">
+            <canvas id="lamCurve" width="640" height="300"></canvas>
+            <div class="curve-cap" id="lamCap"></div>
+          </div>
+          <div id="trade-sliders" style="margin-top:12px"></div>
+        </div>
+
+        <div class="panel" id="sim">
+          <h2>Simulate</h2>
+          <p class="desc">Run a batch with the current settings. Trades only complete against a
+            willing counterparty — pick <b>TRADER</b> to watch lively dealing, <b>VALUE</b> for the
+            tough benchmark.</p>
+          <div class="btn-row">
+            <label class="inline">vs <select id="opp"></select></label>
+            <label class="inline">brain <select id="baseBot"></select></label>
+            <label class="inline">games <input type="number" id="nGames" value="40" min="1" max="300"></label>
+            <label class="inline">seed <input type="number" id="seed" value="0" min="0"></label>
+            <button class="btn" id="runSim">Run</button>
+          </div>
+          <label class="inline" style="margin-top:10px"><input type="checkbox" id="autoSim"> auto-run when I tune (n=20)</label>
+          <div id="simResult"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: step-through -->
+      <div class="panel" id="play">
+        <h2>Step-through play</h2>
+        <p class="desc">Watch the policy decide each ply on a real catanatron board, with the
+          reasoning behind every move — especially trades.</p>
+        <div class="btn-row">
+          <button class="btn" id="newGame">New game</button>
+          <button class="btn ghost" id="step" disabled>Step</button>
+          <button class="btn ghost" id="auto" disabled>Auto</button>
+          <button class="btn ghost" id="reset" disabled>Reset</button>
+          <label class="inline">speed <input type="range" id="speed" min="60" max="900" value="320" style="width:90px"></label>
+        </div>
+
+        <div class="players-row" id="players"></div>
+        <div class="board-box"><div id="board"></div></div>
+
+        <div class="group-label">Decision log</div>
+        <div class="log" id="log"><div class="empty">Start a new game to watch the policy play.</div></div>
+      </div>
+    </div>
+
+    <!-- Decision boundary explorer -->
+    <div class="panel" id="explorer">
+      <h2>Decision boundary explorer</h2>
+      <p class="desc">The accept-a-trade rule is a surface over many inputs (opponent VP,
+        your VP, opponent strength, the value each side gains). You can only look at two at a
+        time: pick the pair, and the rest are held at the values below. Colour is the deal's
+        <b>slack</b> = net &minus; required &mdash; green where the policy accepts, pink where it
+        refuses, the bright line is the boundary, and a hatched band is the hard veto. Every
+        tuner slider reshapes it live.</p>
+
+      <div class="exp-controls">
+        <label class="inline">x-axis <select id="axisX"></select></label>
+        <label class="inline">y-axis <select id="axisY"></select></label>
+        <span class="exp-views" id="expViews"></span>
+      </div>
+
+      <div class="exp-body">
+        <div class="exp-plot">
+          <canvas id="boundary" width="480" height="420"></canvas>
+          <div class="exp-tip" id="expTip">hover the surface to read the decision at a point</div>
+        </div>
+        <div class="exp-side">
+          <div class="group-label">Holding the other inputs at</div>
+          <div id="fixedSliders"></div>
+          <div class="exp-legend">
+            <span><i class="sw acc"></i>accept</span>
+            <span><i class="sw rej"></i>refuse</span>
+            <span><i class="sw vet"></i>veto</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/games/catan-board.js"></script>
+  <script src="js/catan-lab.js"></script>
+</body>
+</html>
