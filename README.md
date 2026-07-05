@@ -7,7 +7,13 @@ A small web app where you don't play classic board games move by move — instea
 bot opponent, simulate **100 games**, and read the statistics. Whoever's policy wins more
 games wins the match.
 
-The point: discover for yourself *how much strategy a game actually has*.
+The point: discover for yourself *how much strategy a game actually has*. For some games
+there are predefined games, e.g. for Tic-Tac-Toe optimal strategies exist. The way a strategy is
+defined is non-trivial for the most cases.
+
+*Still under activ developpment.*
+
+## Available Games
 
 - **Tic-Tac-Toe** — fully solved. With the right card order you find the deterministic
   optimal policy: 100 draws against perfect play, and nothing can do better.
@@ -27,10 +33,13 @@ The point: discover for yourself *how much strategy a game actually has*.
   the full game — development cards, **player-to-player trading**, the lot — and a richer,
   more interactive strategy interface (see [Catan Lab](#catan-lab) below).
 
-## Run it
+## Getting started
 
 The card-stack games (Tic-Tac-Toe, Snakes, Mädn, Monopoly) are pure client-side JS —
-double-click `index.html` or `python3 -m http.server 8000`.
+double-click, e.g.
+```bash
+open index.html
+```
 
 **Catan** needs its engine, which is pinned as a **git submodule** at `catanatron/`
 (upstream [bcollazo/catanatron](https://github.com/bcollazo/catanatron)). Fetch it before
@@ -54,7 +63,7 @@ an editable path dependency on the submodule, so the engine source under `catana
 drives every rule). Run `uv sync` first if you'd rather set the environment up ahead of
 time.
 
-Headless sanity tests:
+### Tests
 
 ```bash
 node test/smoke.js                        # JS games (engine + card logic)
@@ -62,7 +71,8 @@ uv run python server/test_policy.py       # the trading policy (metric, veto, sy
 ```
 
 <a name="catan-lab"></a>
-## Catan Lab — strategy & trade tuner
+
+## Catan Lab — (In development)
 
 Open `catan.html` (or the Catan card on the home page). The premise is the same as the rest of
 Strategy Lab — *design the policy, don't play the moves* — but here the policy is a
@@ -175,6 +185,12 @@ Keep states JSON-serializable (plain objects/arrays) — the engine deep-copies 
 Games with auto-resolving phases (Monopoly's dice turns, Catan's production) keep an
 event `log` array inside the state and show it in `renderState`, so replays stay
 readable even when several automatic events happen between two decisions.
+
+### Rust CLI implementation
+The pure `.js` framework seemed for me to be non-optimal, therefore I drafted an additional Rust,
+CLI implementation, using three different policy management methods. Strategy, Value function,
+Symmetry. For more details see [README](rust_cli_implementation/README.md).
+
 
 ### Roadmap ideas
 
