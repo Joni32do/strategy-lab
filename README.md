@@ -151,13 +151,27 @@ While you play, a side panel offers two lenses, toggled live:
   classes; reward +1/0/-1 at the end, gamma = 1), shows symmetry folding live on the
   current position ("N legal moves -> M real decisions"; the opening's 9 -> 3: center,
   corner, edge), and carries short collapsible notes on game trees and entropy. The
-  other games show a placeholder for now.
+  other games show a placeholder for now. The MDP definition now comes from a shared
+  registry (js/mdp.js) -- every explorable game carries several candidate state spaces
+  (each flagged Markov / approx / not Markov), shown in a collapsed panel you can open
+  and switch; the choice persists per game.
 
 The RL training itself is **not implemented yet**: it will run in a Python backend on
 Gymnasium / OpenSpiel, already vendored as git submodules at `Gymnasium/` and
 `open_spiel/` (pinned; not yet used by any code). Play mode lives in `js/play.js`
 (session + both lenses + pure D4 symmetry helpers, tested headlessly); `js/engine.js`
 now also exports `chooseMove` and `playGame` for it.
+
+### Browse games as MDPs
+
+The home page has a genre menu (Classic & solved / Board / Card / Atari / Classic
+control); chess, tetris and skat are browse-only catalog entries -- each opens an
+explore view with the changeable MDP panel and a "where history bites" note (chess:
+castling/en-passant/repetition live in history; tetris: the 7-bag piece memory --
+though ALE's 2600 Tetris predates 7-bag; skat: card counting and bidding inference).
+When the Flask server is running, the home page also lists the live Gymnasium registry
+from the vendored submodule via GET /api/gym/envs, and the explore view verifies each
+env id against it.
 
 ## Architecture
 
@@ -167,6 +181,8 @@ css/style.css            shared theme;  css/catan-lab.css  styles the Catan Lab
 js/engine.js             policy evaluation + match simulation (game-agnostic, DOM-free)
 js/games/*.js            one self-registering file per card-stack game
 js/play.js               play mode: hand-played sessions, both lenses, pure D4 symmetry helpers
+js/mdp.js                the MDP registry: schema, Markov flags, the collapsed/changeable panel
+js/gym-games.js          catalog entries: tictactoe, chess, tetris, skat -- several candidate MDPs each
 js/ui.js                 home gallery, lab, charts, replay viewer, persistence
 test/smoke.js            headless Node tests of engine + card-stack games
 
@@ -176,6 +192,7 @@ js/games/catan-board.js  generated board geometry (see tools/dump_catan_board.py
 server/app.py            Flask wrapper around catanatron (simulate / game / tick / defaults)
 server/policy.py         the position metric + non-linear trade coefficient + Player
 server/test_policy.py    metric symmetry, leader-veto, real-game trade tests
+server/test_gym_api.py   Gymnasium registry API tests
 tools/                   board-geometry generator (needs the cloned catanatron repo)
 catanatron/              git submodule (bcollazo/catanatron) — the engine, installed
                          editable; drives all Catan rules

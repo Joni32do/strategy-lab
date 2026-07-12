@@ -7,12 +7,14 @@ dependencies = [
     "catanatron",
     "flask",
     "flask-cors",
+    "gymnasium",
 ]
 
-# catanatron is vendored in this repo; install it editable from the local path so
-# the engine source under catanatron/ drives every Catan rule.
+# catanatron and gymnasium are vendored in this repo; install them editable from
+# the local paths so the vendored source drives every rule / env registration.
 [tool.uv.sources]
 catanatron = { path = "catanatron", editable = true }
+gymnasium = { path = "Gymnasium", editable = true }
 
 # strategy-lab itself is an application, not a library to build/install.
 [tool.uv]

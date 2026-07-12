@@ -248,6 +248,47 @@ code { background: var(--panel-2); padding: 1px 6px; border-radius: 6px; font-si
 #m-step { font-size: .72rem; color: var(--muted); width: 48px; text-align: right;
   font-variant-numeric: tabular-nums; }
 
+/* ---------- genre menu + MDP explorer ---------- */
+.genre-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 26px; }
+.genre-chip {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 999px;
+  padding: 7px 14px; font-size: .82rem; color: var(--muted); font-weight: 600;
+}
+.genre-chip:hover { border-color: #3a4270; color: var(--text); }
+.genre-chip.sel { color: var(--text); border-color: var(--p0); box-shadow: 0 0 0 1px var(--p0); }
+
+.explore { margin-top: 4px; }
+.mdp-spec {
+  border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px;
+  background: var(--panel-2); font-size: .82rem;
+}
+.mdp-spec summary { cursor: pointer; font-weight: 600; }
+.mdp-spec .rl-dl { margin-top: 10px; }
+.mdp-badge {
+  font-size: .62rem; font-weight: 700; letter-spacing: .04em; padding: 1px 7px;
+  border-radius: 6px; vertical-align: middle; margin-left: 4px;
+}
+.mdp-badge.ok { background: rgba(81, 207, 102, .16); color: #51cf66; }
+.mdp-badge.no { background: rgba(255, 92, 124, .16); color: var(--avoid); }
+.mdp-badge.approx { background: rgba(255, 209, 102, .14); color: #ffd166; }
+.mdp-choices { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.mdp-choice {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px;
+}
+.mdp-choice:hover { border-color: #3a4270; }
+.mdp-choice.sel { border-color: var(--p1); box-shadow: 0 0 0 1px var(--p1); }
+.mdp-choice input { accent-color: var(--p1); }
+.mdp-choice .mc-name { font-weight: 600; }
+.mdp-history {
+  margin-top: 10px; font-size: .78rem; color: var(--muted);
+  border-top: 1px dashed var(--border); padding-top: 8px;
+}
+
+.gym-live { margin-top: 26px; }
+.gym-group { margin-top: 12px; }
+.gym-group .chips { margin-top: 6px; }
+
 /* ---------- play mode ---------- */
 .btn-play {
   width: 100%; margin-top: 8px; padding: 11px;

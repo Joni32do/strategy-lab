@@ -282,6 +282,63 @@ def tick(gid):
 
 
 # --------------------------------------------------------------------------- #
+# Gymnasium registry (read live from the vendored ./Gymnasium submodule)
+# --------------------------------------------------------------------------- #
+def _gym_group(spec):
+    """A readable group name: the spec namespace, else the entry-point module
+    tail (gymnasium.envs.classic_control -> "classic_control")."""
+    if spec.namespace:
+        return spec.namespace
+    ep = spec.entry_point
+    if isinstance(ep, str):
+        parts = ep.split(":")[0].split(".")
+        if "envs" in parts:
+            i = parts.index("envs")
+            if i + 1 < len(parts):
+                return parts[i + 1]
+        return parts[0]
+    return "other"
+
+
+def _open_spiel_status():
+    """OpenSpiel is vendored at ./open_spiel but its C++ core is usually not
+    built; report gracefully whether `import pyspiel` actually works."""
+    try:
+        import pyspiel  # noqa: F401
+        return {"available": True, "games": sorted(pyspiel.registered_names())}
+    except Exception:
+        return {
+            "available": False,
+            "note": "open_spiel is vendored at ./open_spiel but its C++ core is not built",
+        }
+
+
+@app.get("/api/gym/envs")
+def gym_envs():
+    try:
+        import gymnasium
+    except Exception as exc:  # gymnasium missing / broken -> service unavailable
+        return jsonify({"error": f"gymnasium unavailable: {exc}"}), 503
+
+    grouped = {}
+    for spec in gymnasium.envs.registry.values():
+        grouped.setdefault(_gym_group(spec), set()).add(spec.id)
+
+    groups = [
+        {"namespace": name, "envs": sorted(ids)}
+        for name, ids in sorted(grouped.items())
+    ]
+    return jsonify(
+        {
+            "source": "gymnasium",
+            "version": gymnasium.__version__,
+            "groups": groups,
+            "open_spiel": _open_spiel_status(),
+        }
+    )
+
+
+# --------------------------------------------------------------------------- #
 # Static hosting (serve the whole strategy-lab so one command runs everything)
 # --------------------------------------------------------------------------- #
 @app.get("/")

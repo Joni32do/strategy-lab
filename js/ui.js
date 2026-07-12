@@ -10,8 +10,8 @@ window.UI = (function () {
   const STORE_KEY = 'strategy-lab-v1';
 
   const COMING_SOON = [
-    { icon: '🛞', name: 'The Game of Life', blurb: 'Careers, kids and a big spinner of destiny.' },
-    { icon: '🎲', name: 'Backgammon', blurb: 'The oldest race game in the world.' },
+    { icon: '🛞', name: 'The Game of Life', blurb: 'Careers, kids and a big spinner of destiny.', genre: 'classic' },
+    { icon: '🎲', name: 'Backgammon', blurb: 'The oldest race game in the world.', genre: 'board' },
   ];
 
   let stacks = {};   // gameId -> [ruleId]
@@ -51,11 +51,16 @@ window.UI = (function () {
   }
 
   /* ============================= HOME ============================= */
+  let genreFilter = 'all';
+  let gymLive = null;           // cached /api/gym/envs payload (or 'offline')
+
   function showHome() {
     game = null;
-    const cards = StrategyLab.games.map(g => {
+    const entries = [];         // { genre, html }
+
+    StrategyLab.games.forEach(g => {
       const won = Object.keys(beaten[g.id] || {}).length;
-      return `
+      entries.push({ genre: 'classic', html: `
       <button class="game-card" data-game="${g.id}">
         <div class="gc-icon">${g.icon}</div>
         <div class="gc-name">${g.name}</div>
@@ -65,10 +70,10 @@ window.UI = (function () {
           <span class="chip">🃏 ${g.rules.length} rule cards</span>
           <span class="chip">${won ? '🏅 ' + won + '/' + g.botPresets.length + ' bots beaten' : '🤖 ' + g.botPresets.length + ' bots'}</span>
         </div>
-      </button>`;
-    }).join('');
+      </button>` });
+    });
 
-    const catanCard = `
+    entries.push({ genre: 'board', html: `
       <a class="game-card" href="catan.html" style="text-decoration:none;color:inherit">
         <div class="gc-icon">🏝️</div>
         <div class="gc-name">Settlers of Catan <span class="chip" style="vertical-align:middle">engine: catanatron</span></div>
@@ -79,15 +84,42 @@ window.UI = (function () {
           <span class="chip">🤝 player trading</span>
           <span class="chip">🎛️ metric &amp; trade tuner</span>
         </div>
-      </a>`;
+      </a>` });
 
-    const soon = COMING_SOON.map(c => `
+    /* explorable-MDP catalog entries (chess, tetris, skat, ...);
+     * playable ones already have a card above. */
+    MDP.games.filter(e => !e.playable).forEach(e => {
+      entries.push({ genre: e.genre, html: `
+      <button class="game-card" data-explore="${e.id}">
+        <div class="gc-icon">${e.icon}</div>
+        <div class="gc-name">${e.name}</div>
+        <div class="gc-tag">${e.blurb}</div>
+        <div class="gc-meta">
+          <span class="chip">browse the MDP</span>
+          <span class="chip">engine: ${e.backend}</span>
+          <span class="chip">${e.mdps.length} state spaces</span>
+        </div>
+      </button>` });
+    });
+
+    COMING_SOON.forEach(c => entries.push({ genre: c.genre, html: `
       <div class="game-card locked">
         <div class="gc-icon">${c.icon}</div>
         <div class="gc-name">${c.name}</div>
         <div class="gc-tag">${c.blurb}</div>
         <div class="gc-meta"><span class="chip soon">🔒 coming soon — or add it yourself (see README)</span></div>
-      </div>`).join('');
+      </div>` }));
+
+    const shown = genreFilter === 'all' ? entries : entries.filter(e => e.genre === genreFilter);
+    const counts = {};
+    entries.forEach(e => { counts[e.genre] = (counts[e.genre] || 0) + 1; });
+    const genreBar = [{ id: 'all', name: 'All games' }, ...MDP.genres]
+      .filter(g => g.id === 'all' || counts[g.id])
+      .map(g => `<button class="genre-chip${genreFilter === g.id ? ' sel' : ''}" data-genre="${g.id}"
+        ${g.desc ? `title="${g.desc}"` : ''}>${g.name}${g.id === 'all' ? '' : ' (' + counts[g.id] + ')'}</button>`)
+      .join('');
+
+    const showRegistry = genreFilter === 'all' || genreFilter === 'atari' || genreFilter === 'control';
 
     root().innerHTML = `
       <header class="hero">
@@ -101,11 +133,110 @@ window.UI = (function () {
           <div class="step"><span>3</span>📊 Simulate ${NGAMES} games &amp; read the stats</div>
         </div>
       </header>
-      <main class="games-grid">${cards}${catanCard}${soon}</main>
+      <nav class="genre-bar">${genreBar}</nav>
+      <main class="games-grid">${shown.map(e => e.html).join('')}</main>
+      ${showRegistry ? '<section class="panel gym-live" id="gym-live"></section>' : ''}
       <footer class="foot">Built to be extended — drop a new game file into <code>js/games/</code>. See the README.</footer>`;
 
+    $$('.genre-chip').forEach(el =>
+      el.addEventListener('click', () => { genreFilter = el.dataset.genre; showHome(); }));
     $$('.game-card[data-game]').forEach(el =>
       el.addEventListener('click', () => showLab(StrategyLab.getGame(el.dataset.game))));
+    $$('.game-card[data-explore]').forEach(el =>
+      el.addEventListener('click', () => showExplore(MDP.get(el.dataset.explore))));
+
+    if (showRegistry) renderGymLive();
+  }
+
+  /* -------- the live Gymnasium registry (needs the Flask server) -------- */
+  function fetchGymLive() {
+    if (gymLive) return Promise.resolve(gymLive);
+    return fetch('/api/gym/envs').then(r => r.json())
+      .then(d => (gymLive = d))
+      .catch(() => (gymLive = 'offline'));
+  }
+
+  function renderGymLive() {
+    const host = $('#gym-live');
+    if (!host) return;
+    host.innerHTML = '<h2>Gymnasium registry <span class="h-sub">every env the vendored submodule provides</span></h2>' +
+      '<p class="muted">loading&hellip;</p>';
+    fetchGymLive().then(d => {
+      const el = $('#gym-live');
+      if (!el) return;                          // view changed meanwhile
+      if (d === 'offline') {
+        el.innerHTML = `<h2>Gymnasium registry</h2>
+          <p class="hint">Start the server to browse the live registry of the vendored
+          Gymnasium submodule: <code>uv run python server/app.py</code> and open
+          <code>http://localhost:8000</code>. The catalog cards above work without it.</p>`;
+        return;
+      }
+      const groups = (d.groups || []).map(g => `
+        <div class="gym-group">
+          <h3>${MDP.esc(g.namespace)} <span class="h-sub">${g.envs.length} envs</span></h3>
+          <div class="chips">${g.envs.map(e => `<span class="chip">${MDP.esc(e)}</span>`).join('')}</div>
+        </div>`).join('');
+      const spiel = d.open_spiel
+        ? `<p class="hint">OpenSpiel: ${d.open_spiel.available
+            ? `${d.open_spiel.games.length} games available`
+            : MDP.esc(d.open_spiel.note || 'not built')}</p>`
+        : '';
+      el.innerHTML = `<h2>Gymnasium registry
+          <span class="h-sub">live from the submodule — gymnasium ${MDP.esc(d.version || '?')}</span></h2>
+        ${groups || '<p class="muted">registry came back empty.</p>'}${spiel}`;
+    });
+  }
+
+  /* ============================= EXPLORE =============================
+   * Browse-only view of a catalog game: what it is, where history
+   * bites, and the collapsed-but-changeable MDP panel. */
+  function showExplore(e) {
+    game = null;
+    root().innerHTML = `
+      <header class="bar">
+        <button class="ghost" id="back">&lsaquo; All games</button>
+        <div class="bar-title">${e.icon} ${e.name}</div>
+        <div class="bar-spacer"></div>
+        <span class="chip">engine: ${MDP.esc(e.backend)}</span>
+        <span class="chip">${e.players} player${e.players === 1 ? '' : 's'}</span>
+      </header>
+      <main class="duo explore">
+        <section class="panel">
+          <h2>About</h2>
+          <p class="insight">${MDP.esc(e.blurb)}</p>
+          <h3>Where history bites</h3>
+          <p class="lens-verdict">${MDP.esc(e.history)}</p>
+          <p class="hint">Browse-only skeleton: playing and training run in the Python
+          backend on the vendored <b>${MDP.esc(e.backend)}</b> submodule
+          (env: <code>${MDP.esc(e.envId)}</code>) — not wired up yet.</p>
+          <p class="hint" id="env-check"></p>
+        </section>
+        <section class="panel">
+          <h2>The MDP <span class="h-sub">state space is a design decision — pick one</span></h2>
+          <div id="mdp-host"></div>
+        </section>
+      </main>`;
+
+    $('#back').addEventListener('click', showHome);
+    renderMdpHost(e, false);
+
+    if (e.backend === 'gymnasium') {
+      fetchGymLive().then(d => {
+        const chk = $('#env-check');
+        if (!chk || d === 'offline') return;
+        const all = (d.groups || []).flatMap(g => g.envs);
+        chk.innerHTML = all.includes(e.envId)
+          ? `<code>${MDP.esc(e.envId)}</code> verified in the local Gymnasium registry.`
+          : `<code>${MDP.esc(e.envId)}</code> is not in the local registry (extra
+             dependency, e.g. <code>ale-py</code> for Atari).`;
+      });
+    }
+  }
+
+  function renderMdpHost(e, open) {
+    const host = $('#mdp-host');
+    host.innerHTML = MDP.panelHTML(e, MDP.selectedMdp(e.id), { open });
+    MDP.bindPanel(host, e, () => renderMdpHost(e, true));
   }
 
   /* ============================= LAB ============================= */

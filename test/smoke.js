@@ -96,8 +96,86 @@ for (const id of ['tictactoe', 'snakes', 'maedn', 'monopoly']) {
 }
 
 /* ---- Play mode: symmetry + decision trace ---- */
-require('../js/play.js');   // needs StrategyLab + games already loaded
+require('../js/mdp.js');        // the MDP registry (schema + panel)
+require('../js/gym-games.js');  // catalog entries (needs MDP)
+require('../js/play.js');       // needs StrategyLab + games + MDP already loaded
 const Play = window.Play;
+
+/* ---- MDP registry: catalog schema ---- */
+const MDP = window.MDP;
+
+for (const id of ['chess', 'tetris', 'skat', 'tictactoe']) {
+  const entry = MDP.get(id);
+  check(`MDP.get('${id}') returns an entry`, !!entry);
+  if (entry) {
+    const minVariants = (id === 'chess' || id === 'tetris' || id === 'skat') ? 3 : 2;
+    const numMdps = Object.keys(entry.mdps || {}).length;
+    check(`  ${id} has >= ${minVariants} variants`, numMdps >= minVariants, `count=${numMdps}`);
+  }
+}
+
+for (const id of ['chess', 'tetris', 'skat', 'tictactoe']) {
+  const entry = MDP.get(id);
+  if (!entry) continue;
+  const hasId = !!entry.id, hasName = !!entry.name, hasGenre = !!entry.genre;
+  const hasBackend = !!entry.backend, hasBlurb = !!entry.blurb, hasHistory = entry.history !== undefined;
+  check(`  ${id} has id/name/genre/backend/blurb/history`, hasId && hasName && hasGenre && hasBackend && hasBlurb && hasHistory);
+
+  const genreValid = MDP.genres && MDP.genres.some(g => g.id === entry.genre);
+  check(`  ${id} genre is a known MDP.genres id`, genreValid, `genre=${entry.genre}`);
+
+  const mfp = entry.mdps || [];
+  const variantIds = mfp.map(v => v.id);
+  const uniqueIds = new Set(variantIds).size === variantIds.length;
+  check(`  ${id} variant ids are unique`, uniqueIds, `ids=${variantIds.join(',')}`);
+
+  let allValid = true;
+  for (const v of mfp) {
+    const hasState = !!v.state, hasActions = !!v.actions, hasReward = !!v.reward;
+    const markovValid = v.markov === true || v.markov === false || v.markov === 'approx';
+    if (!hasState || !hasActions || !hasReward || !markovValid) {
+      allValid = false;
+      break;
+    }
+  }
+  check(`  ${id} all variants have state/actions/reward + valid markov`, allValid);
+
+  if (entry.defaultMdp) {
+    const defaultExists = mfp.some(v => v.id === entry.defaultMdp);
+    check(`  ${id} defaultMdp '${entry.defaultMdp}' exists`, defaultExists);
+  }
+}
+
+for (const id of ['chess', 'tetris', 'skat']) {
+  const entry = MDP.get(id);
+  if (!entry) continue;
+  const mfp = entry.mdps || [];
+  const markovVals = mfp.map(v => v.markov);
+  const hasMarkovTrue = markovVals.some(m => m === true);
+  const hasMarkovFalse = markovVals.some(m => m === false);
+  check(`  ${id} has both markov true and false variants`, hasMarkovTrue && hasMarkovFalse,
+    `markovVals=${markovVals.join(',')}`);
+}
+
+const selectedBefore = MDP.selectedMdp('chess');
+MDP.setSelected('chess', 'board-only');
+const selectedAfter = MDP.selectedMdp('chess');
+check('MDP.setSelected round-trip: set to board-only', selectedAfter === 'board-only', `got=${selectedAfter}`);
+MDP.setSelected('chess', 'nonsense');
+const fallback = MDP.selectedMdp('chess');
+check('MDP.setSelected with invalid key falls back to default', fallback === MDP.get('chess').defaultMdp, `got=${fallback}`);
+MDP.setSelected('chess', selectedBefore); // restore
+
+for (const id of ['chess', 'tetris', 'skat', 'tictactoe']) {
+  const entry = MDP.get(id);
+  if (!entry) continue;
+  const variantId = MDP.selectedMdp(id);
+  const html = MDP.panelHTML(entry, variantId, { open: true });
+  const hasChoice = html && html.includes('mdp-choice');
+  const hasVariant = html && html.includes(variantId);
+  check(`MDP.panelHTML('${id}',...) has mdp-choice and variant name`, hasChoice && hasVariant,
+    `mdp-choice=${hasChoice} variant=${hasVariant}`);
+}
 
 const isPerm = p => Array.isArray(p) && p.length === 9 &&
   [...p].sort((a, b) => a - b).every((v, i) => v === i);

@@ -269,6 +269,10 @@ window.Play = (function () {
     $('#p-back').addEventListener('click', () => { timerToken++; S = null; s.onBack(); });
     $$('.mode-btn').forEach(b => b.addEventListener('click', () => { s.mode = b.dataset.mode; render(); }));
     $$('#p-lens details').forEach(d => d.addEventListener('toggle', () => { s.detailsOpen[d.dataset.d] = d.open; }));
+    if (s.mode === 'rl' && window.MDP) {
+      const entry = MDP.get(s.g.id);
+      if (entry) MDP.bindPanel($('#p-lens'), entry, () => render());
+    }
 
     renderBoard();
     renderStatus();
@@ -410,17 +414,21 @@ window.Play = (function () {
          mirror of the board maps one onto the other, so an agent only needs to learn one of them.</p>`;
 
     const opening = openingClasses();  // 3 classes on the empty board
+
+    /* The MDP definition comes from the shared registry (js/mdp.js):
+     * the same collapsed, changeable panel as the explore view. */
+    const entry = window.MDP && MDP.get(s.g.id);
+    const mdpBlock = entry
+      ? `<h3>The game as an MDP</h3>
+         ${MDP.panelHTML(entry, MDP.selectedMdp(entry.id), { open: !!s.detailsOpen.mdp, dataD: 'mdp' })}`
+      : `<h3>The game as an MDP</h3>
+         <dl class="rl-dl">
+           <dt>State s</dt><dd>the board, as seen by the player to move.</dd>
+           <dt>Reward</dt><dd>+1 win &middot; 0 draw &middot; &minus;1 loss at the end.</dd>
+         </dl>`;
+
     return `${head}
-      <h3>The game as an MDP</h3>
-      <dl class="rl-dl">
-        <dt>State s</dt><dd>the board, as seen by the player to move.
-          ${TTT_COUNTS.reachable} reachable states; symmetry folds them to <b>${TTT_COUNTS.folded}</b>.</dd>
-        <dt>Actions A(s)</dt><dd>the empty squares — folded into equivalence classes below.</dd>
-        <dt>Transition</dt><dd>your mark lands (deterministic), then the opponent replies:
-          from your seat, the opponent is part of the environment.</dd>
-        <dt>Reward</dt><dd>+1 win &middot; 0 draw &middot; &minus;1 loss, only at the end
-          (an episodic task, &gamma; = 1).</dd>
-      </dl>
+      ${mdpBlock}
       <h3>Symmetry, live on this position</h3>
       ${symLine}
       <div class="sym-mini">${mini}</div>
