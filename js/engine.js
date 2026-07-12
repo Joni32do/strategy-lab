@@ -104,6 +104,7 @@ window.StrategyLab = (function () {
   return {
     games, registerGame, getGame,
     simulateMatch, replayGame, resolveStack,
+    chooseMove, playGame,
     mulberry32, randInt, pickRandom, clone,
   };
 })();

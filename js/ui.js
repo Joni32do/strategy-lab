@@ -183,11 +183,14 @@ window.UI = (function () {
           <h3>Their strategy <span class="h-sub">study it, steal from it</span></h3>
           <ol class="bot-stack">${botStack}</ol>
           <button class="btn-run" id="run">▶ &nbsp;Play ${NGAMES} games</button>
+          <button class="btn-play" id="play" title="play the games yourself, turn by turn">Play it yourself — turn by turn</button>
         </section>
       </main>`;
 
     $('#back').addEventListener('click', showHome);
     $('#run').addEventListener('click', runMatch);
+    $('#play').addEventListener('click', () =>
+      Play.open(g, userIdsFor(g), presetFor(g), { onBack: () => showLab(g) }));
 
     $('#palette').addEventListener('click', e => {
       const card = e.target.closest('.rule-card');

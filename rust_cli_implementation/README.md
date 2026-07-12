@@ -10,9 +10,9 @@ each a different way of "solving" it:
 ```
 ┌ 1 Strategy ──────────┬ 2 Value-RL ──────────┬ 3 Symmetry ──────────┐
 │ discover & stack the │ a value function the │ fold the game by its │
-│ rule cards, by hand  │ machine LEARNS by    │ symmetry group to the │
-│ — then simulate 100  │ self-play, converging │ few decisions that    │
-│ games                │ to exact play         │ actually matter       │
+│ rule cards, by hand  │ machine LEARNS by    │ symmetry group to the│
+│ — then simulate 100  │ self-play, converging│ few decisions that   │
+│ games                │ to exact play        │ actually matter      │
 └──────────────────────┴──────────────────────┴──────────────────────┘
 ```
 

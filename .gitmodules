@@ -4,3 +4,9 @@
 [submodule "rust_cli_implementation/catanatron"]
 	path = rust_cli_implementation/catanatron
 	url = https://github.com/bcollazo/catanatron.git
+[submodule "open_spiel"]
+	path = open_spiel
+	url = https://github.com/google-deepmind/open_spiel.git
+[submodule "Gymnasium"]
+	path = Gymnasium
+	url = https://github.com/Farama-Foundation/Gymnasium.git

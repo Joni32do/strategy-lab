@@ -184,6 +184,16 @@
       return `places ${s.marks[seat]} in the ${CELL_NAMES[move]} square`;
     },
 
+    /* Play mode: the board itself takes the human's clicks. */
+    bindPlayInput(s, boardEl, legal, onMove) {
+      const cells = boardEl.querySelectorAll('.ttt-cell');
+      legal.forEach(m => {
+        cells[m].classList.add('playable');
+        cells[m].addEventListener('click', () => onMove(m));
+      });
+      return true;                     // no generic move buttons needed
+    },
+
     renderState(s, el) {
       const winLine = findWinLine(s.board);
       const grid = document.createElement('div');

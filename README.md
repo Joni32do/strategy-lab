@@ -132,6 +132,33 @@ reimplemented anywhere in this repo.
 4. **Read the stats** — win bars, momentum chart (cumulative lead), streaks,
    first-mover split, a game-specific insight, and watchable sample replays.
 
+### Play mode (first draft)
+
+Every card-stack game's lab now has a **"Play it yourself -- turn by turn"** button: you
+take seat 0 and play against the chosen bot directly, instead of only simulating. A
+session is the same 100 games as a simulated match -- play as many by hand as you like,
+then hit **"Auto-finish N games"** and your card stack plays the remainder at simulation
+speed, with identical seeds and seat alternation to a simulated match. Tic-Tac-Toe takes
+clicks on the board itself; the other three games play through generic per-move buttons.
+
+While you play, a side panel offers two lenses, toggled live:
+
+- **Strategy cards** -- your stack, annotated with which card would decide *right now*
+  and what it would play. You explore the cards by playing them.
+- **RL / MDP** -- a skeleton of the coming reinforcement-learning view. For Tic-Tac-Toe
+  it defines the MDP (state = the board from the mover's perspective, 5478 reachable
+  states folded to 765 by symmetry; actions = the empty squares, folded into equivalence
+  classes; reward +1/0/-1 at the end, gamma = 1), shows symmetry folding live on the
+  current position ("N legal moves -> M real decisions"; the opening's 9 -> 3: center,
+  corner, edge), and carries short collapsible notes on game trees and entropy. The
+  other games show a placeholder for now.
+
+The RL training itself is **not implemented yet**: it will run in a Python backend on
+Gymnasium / OpenSpiel, already vendored as git submodules at `Gymnasium/` and
+`open_spiel/` (pinned; not yet used by any code). Play mode lives in `js/play.js`
+(session + both lenses + pure D4 symmetry helpers, tested headlessly); `js/engine.js`
+now also exports `chooseMove` and `playGame` for it.
+
 ## Architecture
 
 ```
@@ -139,6 +166,7 @@ index.html               script tags define which card-stack games are loaded
 css/style.css            shared theme;  css/catan-lab.css  styles the Catan Lab
 js/engine.js             policy evaluation + match simulation (game-agnostic, DOM-free)
 js/games/*.js            one self-registering file per card-stack game
+js/play.js               play mode: hand-played sessions, both lenses, pure D4 symmetry helpers
 js/ui.js                 home gallery, lab, charts, replay viewer, persistence
 test/smoke.js            headless Node tests of engine + card-stack games
 
@@ -151,6 +179,8 @@ server/test_policy.py    metric symmetry, leader-veto, real-game trade tests
 tools/                   board-geometry generator (needs the cloned catanatron repo)
 catanatron/              git submodule (bcollazo/catanatron) — the engine, installed
                          editable; drives all Catan rules
+Gymnasium/               git submodule -- the planned Python RL backend for the RL lens
+open_spiel/              git submodule -- same plan; both pinned, not yet wired to any code
 pyproject.toml           uv project: Flask + catanatron (editable path dep); uv.lock pins it
 rust_cli_implementation/ an alternative take: a Rust TUI over the same catanatron bridge
                          (has its own catanatron submodule + catan-server) — see its README
@@ -200,4 +230,7 @@ Symmetry. For more details see [README](rust_cli_implementation/README.md).
   in the step-through view.
 - **Auto-tuner** — hill-climb over card orders and show *which* permutation of your
   cards performs best: policy iteration made visible.
+- **Wire the RL lens** -- connect play mode's RL / MDP panel to a Python backend on the
+  vendored Gymnasium / OpenSpiel submodules, so an agent trains per game and the four
+  simple games' MDPs get defined one game at a time.
 - **Elo ladder** — persistent ratings for your strategies across sessions.

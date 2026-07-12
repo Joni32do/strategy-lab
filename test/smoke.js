@@ -95,5 +95,69 @@ for (const id of ['tictactoe', 'snakes', 'maedn', 'monopoly']) {
   check(`${id}: replay captions present (${rep.replay.length - 1} moves)`, capsOk);
 }
 
+/* ---- Play mode: symmetry + decision trace ---- */
+require('../js/play.js');   // needs StrategyLab + games already loaded
+const Play = window.Play;
+
+const isPerm = p => Array.isArray(p) && p.length === 9 &&
+  [...p].sort((a, b) => a - b).every((v, i) => v === i);
+check('Play: D4 has 8 transforms, each a permutation of 0..8',
+  Play.D4.length === 8 && Play.D4.every(isPerm), `n=${Play.D4.length}`);
+
+const classKey = cls => cls.map(c => [...c.cells].sort((a, b) => a - b).join(',')).sort().join(' | ');
+const opening = Play.openingClasses();
+check('Play: opening folds 9 squares into 3 classes', opening.length === 3, `n=${opening.length}`);
+check('Play: opening classes are center / corners / edges',
+  classKey(opening) === '0,2,6,8 | 1,3,5,7 | 4', classKey(opening));
+
+const EMPTY = Array(9).fill(null);
+check('Play: empty board keeps all 8 symmetries', Play.stabilizers(EMPTY).length === 8);
+
+const centerOnly = [...EMPTY]; centerOnly[4] = 0;
+const centerReplies = Play.moveClasses(centerOnly, [0, 1, 2, 3, 5, 6, 7, 8]);
+check('Play: center-only board keeps all 8 symmetries', Play.stabilizers(centerOnly).length === 8);
+check('Play: 8 replies to a center opening fold to 2 classes',
+  centerReplies.length === 2, classKey(centerReplies));
+
+const cornerOnly = [...EMPTY]; cornerOnly[0] = 0;
+const cornerReplies = Play.moveClasses(cornerOnly, [1, 2, 3, 4, 5, 6, 7, 8]);
+check('Play: 8 replies to a corner opening fold to 5 classes',
+  cornerReplies.length === 5, classKey(cornerReplies));
+
+const asym = [...EMPTY]; asym[0] = 0; asym[1] = 1;
+const asymReplies = Play.moveClasses(asym, [2, 3, 4, 5, 6, 7, 8]);
+check('Play: asymmetric board folds nothing (7 cells, 7 classes)',
+  asymReplies.length === 7, classKey(asymReplies));
+
+const ttt = SL.getGame('tictactoe');
+// X holds 0,1 (can win at 2); O holds 3,4 (threatens 5); X to move.
+const nearWin = { board: [0, 0, null, 1, 1, null, null, null, null], current: 0, marks: ['X', 'O'] };
+let tr = Play.traceDecision(ttt, nearWin, ['win', 'block', 'center'], 0);
+check('Play: trace picks the win card and completes the row',
+  !!tr.rule && tr.rule.id === 'win' && tr.move === 2, `rule=${tr.rule && tr.rule.id} move=${tr.move}`);
+tr = Play.traceDecision(ttt, nearWin, ['block'], 0);
+check('Play: block-only stack blocks at square 5', tr.move === 5, `move=${tr.move}`);
+tr = Play.traceDecision(ttt, nearWin, [], 0);
+check('Play: empty stack falls through to random', tr.random === true && tr.move === null);
+
+const fresh = { board: [...EMPTY], current: 0, marks: ['X', 'O'] };
+const tc1 = Play.traceDecision(ttt, fresh, ['corner'], 0);   // corner card draws on an rng
+const tc2 = Play.traceDecision(ttt, fresh, ['corner'], 0);
+check('Play: trace is pure - repeated calls agree (rng-using card)',
+  tc1.move === tc2.move && tc1.move !== null, `move=${tc1.move}`);
+const tp1 = Play.traceDecision(ttt, nearWin, PERFECT, 0);
+const tp2 = Play.traceDecision(ttt, nearWin, PERFECT, 0);
+check('Play: trace is pure - repeated calls agree (perfect stack)',
+  tp1.move === tp2.move && tp1.move === 2, `move=${tp1.move}`);
+
+const pgStacks = [SL.resolveStack(ttt, PERFECT), SL.resolveStack(ttt, [])];
+const pg1 = SL.playGame(ttt, pgStacks, 0, 42, false);
+const pg2 = SL.playGame(ttt, pgStacks, 0, 42, false);
+check('playGame: perfect vs empty from seed 42 is deterministic',
+  pg1.winner === pg2.winner && pg1.turns === pg2.turns,
+  `winner=${pg1.winner} turns=${pg1.turns}`);
+const cm = SL.chooseMove(ttt, nearWin, SL.resolveStack(ttt, PERFECT), 0, SL.mulberry32(1));
+check('chooseMove: perfect stack takes the winning square', cm === 2, `move=${cm}`);
+
 console.log(fails ? `\n${fails} check(s) FAILED` : '\nAll checks passed.');
 process.exit(fails ? 1 : 0);
