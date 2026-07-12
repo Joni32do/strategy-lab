@@ -64,6 +64,7 @@
     players: 2,
     backend: 'open_spiel',
     envId: 'chess',
+    play: { kind: 'spiel', game: 'chess' },
     blurb: 'Perfect information, huge tree: the board looks like the whole state, but '
       + 'castling rights, en passant, and repetition draws are invisible unless you '
       + 'also carry the history that produced the position.',
@@ -174,6 +175,7 @@
     players: 3,
     backend: 'open_spiel',
     envId: 'skat',
+    play: { kind: 'spiel', game: 'skat' },
     blurb: 'A 3-player trick-taking card game where the real state is not the cards '
       + 'in your hand but everything you can infer about the two hands you cannot '
       + 'see - bidding, declaration, and every card played so far.',
@@ -215,6 +217,109 @@
         note: 'this is the information state open_spiel actually operates on - '
           + 'large and growing through the deal, but it is the only formulation '
           + 'for which optimal imperfect-information play is well defined.',
+      },
+    ],
+  });
+
+  /* FrozenLake — a tiny gridworld, but "tiny" hides a choice: with a
+   * known map the cell index alone is Markov (the slipperiness only
+   * makes the transition stochastic, not the state incomplete). The
+   * interesting case is an unknown map, where which cells you have
+   * already found safe or lethal is history that a memoryless agent
+   * throws away and re-drowns for. */
+  MDP.register({
+    id: 'frozenlake',
+    name: 'FrozenLake',
+    icon: '❄️',
+    genre: 'control',
+    players: 1,
+    backend: 'gymnasium',
+    envId: 'FrozenLake-v1',
+    play: { kind: 'gym', envId: 'FrozenLake-v1' },
+    blurb: 'A 4x4 gridworld from the Gymnasium starter set: walk from S to G without '
+      + 'falling into a hole. The default env is "slippery" - you move in your '
+      + 'intended direction only 1/3 of the time.',
+    history: 'with a KNOWN map the cell index is the whole state - perfectly Markov, '
+      + '16 states. The interesting history case is an UNKNOWN map: then which cells '
+      + 'you have already seen to be safe or holes is information, and a memoryless '
+      + 'agent re-drowns in the same lake.',
+    defaultMdp: 'index',
+    mdps: [
+      {
+        id: 'index', name: 'Cell index (known map)', markov: true,
+        state: 'your cell index (0..15) with the map known',
+        stateSize: '16 states',
+        actions: 'left / down / right / up',
+        reward: '+1 at the goal, 0 otherwise',
+        note: 'slipperiness makes the TRANSITION stochastic, not the state '
+          + 'incomplete - still fully Markov.',
+      },
+      {
+        id: 'coords-map', name: 'Coordinates + map layout', markov: true,
+        state: '(row, col) plus the hole/goal layout as part of the state',
+        actions: 'left / down / right / up',
+        reward: '+1 at the goal, 0 otherwise',
+        note: 'generalizes across maps at the cost of a much bigger state space.',
+      },
+      {
+        id: 'explored', name: 'Coordinates + explored cells', markov: 'approx',
+        state: '(row, col) plus the set of cells observed so far, for the '
+          + 'unknown-map setting',
+        actions: 'left / down / right / up',
+        reward: '+1 at the goal, 0 otherwise',
+        note: 'the map knowledge lives in history - this is a POMDP being folded '
+          + 'into a belief-ish state.',
+      },
+    ],
+  });
+
+  /* CartPole — the fruit fly of RL. The full 4-dim state is Markov;
+   * drop the two velocities and a single snapshot cannot tell a pole
+   * swinging left from one swinging right, because velocity IS
+   * compressed one-step history. */
+  MDP.register({
+    id: 'cartpole',
+    name: 'CartPole',
+    icon: '⚖️',
+    genre: 'control',
+    players: 1,
+    backend: 'gymnasium',
+    envId: 'CartPole-v1',
+    play: { kind: 'gym', envId: 'CartPole-v1' },
+    blurb: 'The fruit fly of RL: balance a pole on a cart by pushing left or right. '
+      + 'Reward +1 per step survived.',
+    history: 'the full 4-dim state (position, velocity, angle, angular velocity) is '
+      + 'Markov - but drop the two velocities and the remaining snapshot cannot '
+      + 'tell a pole swinging left from one swinging right; the velocities ARE '
+      + 'compressed history (one-step differences).',
+    defaultMdp: 'full',
+    mdps: [
+      {
+        id: 'full', name: 'Position + velocity + angle + angular velocity', markov: true,
+        state: '[cart position, cart velocity, pole angle, pole angular velocity], '
+          + 'continuous, Box(4)',
+        actions: 'push left / push right',
+        reward: '+1 per step until the pole falls or the cart leaves the track '
+          + '(cap 500)',
+      },
+      {
+        id: 'no-velocity', name: 'Position + angle only', markov: false,
+        state: '[cart position, pole angle] only',
+        actions: 'push left / push right',
+        reward: '+1 per step until the pole falls or the cart leaves the track '
+          + '(cap 500)',
+        note: 'two snapshots that look identical can be one pole swinging up and '
+          + 'one crashing down - the missing velocities are exactly one step of '
+          + 'history. This is the cleanest \'history is key\' example in the catalog.',
+      },
+      {
+        id: 'binned', name: 'Discretized (binned) state', markov: 'approx',
+        state: 'the 4 dims discretized into coarse bins (classic tabular treatment)',
+        actions: 'push left / push right',
+        reward: '+1 per step until the pole falls or the cart leaves the track '
+          + '(cap 500)',
+        note: 'Markov up to discretization error; finer bins buy precision at the '
+          + 'cost of a much bigger table.',
       },
     ],
   });

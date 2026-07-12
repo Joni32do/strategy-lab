@@ -55,6 +55,7 @@ window.UI = (function () {
   let gymLive = null;           // cached /api/gym/envs payload (or 'offline')
 
   function showHome() {
+    if (window.EnvPlay) EnvPlay.unmount();
     game = null;
     const entries = [];         // { genre, html }
 
@@ -171,11 +172,18 @@ window.UI = (function () {
           <code>http://localhost:8000</code>. The catalog cards above work without it.</p>`;
         return;
       }
-      const groups = (d.groups || []).map(g => `
+      const playableNs = d.playable_namespaces || [];
+      const groups = (d.groups || []).map(g => {
+        const playable = playableNs.includes(g.namespace);
+        const chips = g.envs.map(e => playable
+          ? `<button class="chip chip-play" data-env="${MDP.esc(e)}" title="play it live">${MDP.esc(e)}</button>`
+          : `<span class="chip">${MDP.esc(e)}</span>`).join('');
+        return `
         <div class="gym-group">
-          <h3>${MDP.esc(g.namespace)} <span class="h-sub">${g.envs.length} envs</span></h3>
-          <div class="chips">${g.envs.map(e => `<span class="chip">${MDP.esc(e)}</span>`).join('')}</div>
-        </div>`).join('');
+          <h3>${MDP.esc(g.namespace)} <span class="h-sub">${g.envs.length} envs${playable ? ' &middot; playable' : ''}</span></h3>
+          <div class="chips">${chips}</div>
+        </div>`;
+      }).join('');
       const spiel = d.open_spiel
         ? `<p class="hint">OpenSpiel: ${d.open_spiel.available
             ? `${d.open_spiel.games.length} games available`
@@ -184,7 +192,36 @@ window.UI = (function () {
       el.innerHTML = `<h2>Gymnasium registry
           <span class="h-sub">live from the submodule — gymnasium ${MDP.esc(d.version || '?')}</span></h2>
         ${groups || '<p class="muted">registry came back empty.</p>'}${spiel}`;
+      $$('.chip-play', el).forEach(btn =>
+        btn.addEventListener('click', () => showExplore(synthGymEntry(btn.dataset.env))));
     });
+  }
+
+  /* An explore entry for a live-registry env with no curated catalog
+   * card — enough for the MDP panel + a live gym play session. Not
+   * registered into MDP.games; showExplore takes the object directly. */
+  function synthGymEntry(envId) {
+    return {
+      id: 'env:' + envId,
+      name: envId,
+      icon: '🎛️',
+      genre: 'control',
+      players: 1,
+      backend: 'gymnasium',
+      envId,
+      blurb: 'A live environment from the Gymnasium registry.',
+      history: 'depends on the env - the curated catalog entries dissect the interesting ones.',
+      play: { kind: 'gym', envId },
+      mdps: [{
+        id: 'env',
+        name: 'Env observation as-is',
+        markov: 'approx',
+        state: 'whatever the env returns as observation (see obsSpace in the play panel)',
+        actions: 'the env action space',
+        reward: 'the env reward signal',
+        note: 'auto-generated entry - curated games get hand-written state-space ladders.',
+      }],
+    };
   }
 
   /* ============================= EXPLORE =============================
@@ -206,19 +243,24 @@ window.UI = (function () {
           <p class="insight">${MDP.esc(e.blurb)}</p>
           <h3>Where history bites</h3>
           <p class="lens-verdict">${MDP.esc(e.history)}</p>
-          <p class="hint">Browse-only skeleton: playing and training run in the Python
-          backend on the vendored <b>${MDP.esc(e.backend)}</b> submodule
-          (env: <code>${MDP.esc(e.envId)}</code>) — not wired up yet.</p>
+          <p class="hint">${e.play
+            ? `Playable below — live on the <b>${MDP.esc(e.backend)}</b> engine
+               (env: <code>${MDP.esc(e.envId)}</code>) through the Python backend.`
+            : `Browse-only: this game's engine
+               (<b>${MDP.esc(e.backend)}</b>, env: <code>${MDP.esc(e.envId)}</code>)
+               is not wired for live play yet.`}</p>
           <p class="hint" id="env-check"></p>
         </section>
         <section class="panel">
           <h2>The MDP <span class="h-sub">state space is a design decision — pick one</span></h2>
           <div id="mdp-host"></div>
         </section>
-      </main>`;
+      </main>
+      ${e.play ? '<section class="panel" id="play-host"></section>' : ''}`;
 
     $('#back').addEventListener('click', showHome);
     renderMdpHost(e, false);
+    if (e.play) EnvPlay.mount(e, $('#play-host'));
 
     if (e.backend === 'gymnasium') {
       fetchGymLive().then(d => {
@@ -235,12 +277,17 @@ window.UI = (function () {
 
   function renderMdpHost(e, open) {
     const host = $('#mdp-host');
-    host.innerHTML = MDP.panelHTML(e, MDP.selectedMdp(e.id), { open });
+    // selectedMdp() returns null for entries not registered in MDP.games
+    // (e.g. envs synthesized from the live registry) — fall back to the
+    // entry's own default so unregistered games still render a panel.
+    const sel = MDP.selectedMdp(e.id) || e.defaultMdp || e.mdps[0].id;
+    host.innerHTML = MDP.panelHTML(e, sel, { open });
     MDP.bindPanel(host, e, () => renderMdpHost(e, true));
   }
 
   /* ============================= LAB ============================= */
   function showLab(g) {
+    if (window.EnvPlay) EnvPlay.unmount();
     game = g;
     const userIds = userIdsFor(g);
     const preset = presetFor(g);

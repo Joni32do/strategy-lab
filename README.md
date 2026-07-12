@@ -156,22 +156,44 @@ While you play, a side panel offers two lenses, toggled live:
   (each flagged Markov / approx / not Markov), shown in a collapsed panel you can open
   and switch; the choice persists per game.
 
-The RL training itself is **not implemented yet**: it will run in a Python backend on
-Gymnasium / OpenSpiel, already vendored as git submodules at `Gymnasium/` and
-`open_spiel/` (pinned; not yet used by any code). Play mode lives in `js/play.js`
+The RL *training* itself is **not implemented yet** -- but the backend engines now
+run live: the `Gymnasium/` submodule is the app's editable gymnasium dependency, and
+OpenSpiel runs via the `open-spiel` PyPI wheel pinned to the vendored `open_spiel/`
+submodule's version (see "play them live" below). Play mode lives in `js/play.js`
 (session + both lenses + pure D4 symmetry helpers, tested headlessly); `js/engine.js`
 now also exports `chooseMove` and `playGame` for it.
 
-### Browse games as MDPs
+### Browse games as MDPs -- and play them live
 
 The home page has a genre menu (Classic & solved / Board / Card / Atari / Classic
-control); chess, tetris and skat are browse-only catalog entries -- each opens an
-explore view with the changeable MDP panel and a "where history bites" note (chess:
-castling/en-passant/repetition live in history; tetris: the 7-bag piece memory --
-though ALE's 2600 Tetris predates 7-bag; skat: card counting and bidding inference).
+control); chess, skat, tetris, FrozenLake and CartPole are catalog entries -- each
+opens an explore view with the changeable MDP panel and a "where history bites" note
+(chess: castling/en-passant/repetition live in history; tetris: the 7-bag piece
+memory -- though ALE's 2600 Tetris predates 7-bag; skat: card counting and bidding
+inference; CartPole: the velocities ARE one step of compressed history).
 When the Flask server is running, the home page also lists the live Gymnasium registry
 from the vendored submodule via GET /api/gym/envs, and the explore view verifies each
 env id against it.
+
+With the server up, most of these are **actually playable** (js/env-play.js against
+server/envs.py):
+
+- **Gymnasium** (`POST /api/env/new|step|reset`): every registry env from the
+  `classic_control` and `toy_text` namespaces -- FrozenLake and CartPole have curated
+  entries, and every playable env id in the registry panel is clickable too. Step the
+  env yourself with named action buttons (toy_text envs render their ANSI board;
+  vector observations get labeled bars), or flip **policy: random** and watch a random
+  policy drive from the same state -- the policy-exploration hook. Envs needing extra
+  native deps (box2d, mujoco, ALE) stay browse-only.
+- **OpenSpiel** (`POST /api/spiel/new|act`): **skat** and **chess** run on the real
+  pyspiel engine (the PyPI wheel `open-spiel==1.6.15`, pinned to the same version as
+  the vendored `open_spiel/` submodule). You hold one seat, the other seats are random
+  bots, chance nodes (skat's dealing) resolve automatically; play a legal move, let a
+  random move play for you, or autoplay a whole deal to its real scoring. Verified
+  end-to-end: a full skat deal (bidding -> tricks -> declarer scoring) and chess
+  openings with legal-move strings, both through the actual UI module over HTTP
+  (server/test_envs.py covers the API; the tetris entry stays browse-only until
+  ale-py lands).
 
 ## Architecture
 
@@ -182,7 +204,8 @@ js/engine.js             policy evaluation + match simulation (game-agnostic, DO
 js/games/*.js            one self-registering file per card-stack game
 js/play.js               play mode: hand-played sessions, both lenses, pure D4 symmetry helpers
 js/mdp.js                the MDP registry: schema, Markov flags, the collapsed/changeable panel
-js/gym-games.js          catalog entries: tictactoe, chess, tetris, skat -- several candidate MDPs each
+js/gym-games.js          catalog entries: tictactoe, chess, tetris, skat, frozenlake, cartpole
+js/env-play.js           live play panel: gym envs + open_spiel seats vs random bots
 js/ui.js                 home gallery, lab, charts, replay viewer, persistence
 test/smoke.js            headless Node tests of engine + card-stack games
 
@@ -193,11 +216,14 @@ server/app.py            Flask wrapper around catanatron (simulate / game / tick
 server/policy.py         the position metric + non-linear trade coefficient + Player
 server/test_policy.py    metric symmetry, leader-veto, real-game trade tests
 server/test_gym_api.py   Gymnasium registry API tests
+server/envs.py           play sessions: /api/env/* (gymnasium) + /api/spiel/* (open_spiel)
+server/test_envs.py      real engine round-trips: FrozenLake, CartPole, skat, chess
 tools/                   board-geometry generator (needs the cloned catanatron repo)
 catanatron/              git submodule (bcollazo/catanatron) — the engine, installed
                          editable; drives all Catan rules
-Gymnasium/               git submodule -- the planned Python RL backend for the RL lens
-open_spiel/              git submodule -- same plan; both pinned, not yet wired to any code
+Gymnasium/               git submodule -- installed editable; powers /api/env/* live play
+open_spiel/              git submodule -- reference source; pyspiel runs via the PyPI
+                         wheel pinned to this submodule's version (C++ core not built)
 pyproject.toml           uv project: Flask + catanatron (editable path dep); uv.lock pins it
 rust_cli_implementation/ an alternative take: a Rust TUI over the same catanatron bridge
                          (has its own catanatron submodule + catan-server) — see its README

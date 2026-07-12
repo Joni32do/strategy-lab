@@ -47,8 +47,11 @@ window.MDP = (function () {
    *   envId:   registry id of the real environment ('chess', 'ALE/Tetris-v5', ...),
    *   history: one line on where history bites in this game,
    *   playable: true if a card-stack lab game with the same id exists,
+   *   play?:   how to play it against the server (js/env-play.js):
+   *            { kind: 'gym', envId } | { kind: 'spiel', game } - absent
+   *            means browse-only,
    *   mdps: [{ id, name, markov: true|false|'approx',
-   *            state, stateSize?, actions, reward, note? }],
+   *            state, stateSize?, actions, transition?, reward, note? }],
    *   defaultMdp?: id (else the first)
    * } */
   function register(entry) { games.push(entry); return entry; }

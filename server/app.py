@@ -40,6 +40,7 @@ from catanatron.state_functions import (
 )
 from catanatron.models.enums import SETTLEMENT, CITY
 
+from envs import register_env_api, PLAYABLE_NAMESPACES
 from policy import (
     StrategicTradingPlayer,
     MetricWeights,
@@ -51,6 +52,7 @@ from policy import (
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 app = Flask(__name__, static_folder=None)
 CORS(app)
+register_env_api(app)   # /api/env/* (gymnasium) + /api/spiel/* (open_spiel)
 
 GAMES = {}  # game_id -> dict(game, you_color, weights, tp, players)
 
@@ -333,6 +335,7 @@ def gym_envs():
             "source": "gymnasium",
             "version": gymnasium.__version__,
             "groups": groups,
+            "playable_namespaces": list(PLAYABLE_NAMESPACES),
             "open_spiel": _open_spiel_status(),
         }
     )

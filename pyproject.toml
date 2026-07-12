@@ -8,6 +8,7 @@ dependencies = [
     "flask",
     "flask-cors",
     "gymnasium",
+    "open-spiel>=1.6.15",
 ]
 
 # catanatron and gymnasium are vendored in this repo; install them editable from
