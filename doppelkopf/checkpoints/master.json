@@ -1,0 +1,7 @@
+{
+  "pimc_eval_net": 0.229,
+  "pimc_eval_heuristic": 0.76,
+  "games": 96,
+  "net_eval": 0.375,
+  "rollout": "heuristic"
+}

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doppelkopf</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-suits">&#9827;&#9829;</span>
+    <h1>Doppelkopf</h1>
+    <span class="subtitle">hidden teams &middot; 121 to win</span>
+  </div>
+  <div class="controls">
+    <label class="ctl">
+      Opponents
+      <select id="opponents">
+        <option value="heuristic">Heuristic bots</option>
+        <option value="master">Master bots (search)</option>
+      </select>
+    </label>
+    <label class="ctl">
+      Seed
+      <input id="seed" type="number" placeholder="random" min="0">
+    </label>
+    <label class="ctl toggle">
+      <input id="advice-toggle" type="checkbox" checked>
+      Advice
+    </label>
+    <button id="new-game" class="primary">New game</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="table-wrap">
+    <div id="team-banner" class="team-banner hidden"></div>
+    <div class="table felt">
+      <div class="seat seat-north" id="seat-2">
+        <div class="seat-label"><span class="seat-name">North</span><span class="seat-badges"></span></div>
+        <div class="cardbacks"></div>
+      </div>
+      <div class="seat seat-west" id="seat-1">
+        <div class="seat-label"><span class="seat-name">West</span><span class="seat-badges"></span></div>
+        <div class="cardbacks"></div>
+      </div>
+      <div class="seat seat-east" id="seat-3">
+        <div class="seat-label"><span class="seat-name">East</span><span class="seat-badges"></span></div>
+        <div class="cardbacks"></div>
+      </div>
+
+      <div class="trick-area" id="trick-area">
+        <div class="trick-slot slot-2" data-seat="2"></div>
+        <div class="trick-slot slot-1" data-seat="1"></div>
+        <div class="trick-slot slot-3" data-seat="3"></div>
+        <div class="trick-slot slot-0" data-seat="0"></div>
+        <div class="trick-info" id="trick-info"></div>
+      </div>
+
+      <div class="seat seat-south" id="seat-0">
+        <div class="seat-label"><span class="seat-name">You</span><span class="seat-badges"></span></div>
+      </div>
+    </div>
+
+    <div class="hand-wrap">
+      <div id="status-line" class="status-line">Press <b>New game</b> to be dealt in.</div>
+      <div id="hand" class="hand"></div>
+    </div>
+  </section>
+
+  <aside class="sidebar">
+    <section class="panel" id="advice-panel">
+      <h2>Bot advice <span id="advice-source" class="panel-note"></span></h2>
+      <div id="advice-body" class="advice-body">
+        <p class="muted">Advice appears here on your turn.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Scoreboard</h2>
+      <div id="scoreboard" class="scoreboard"></div>
+      <p class="panel-note">&#9733; = played a club queen (publicly Re)</p>
+    </section>
+
+    <section class="panel">
+      <h2>Tricks</h2>
+      <div id="trick-log" class="trick-log"><p class="muted">No tricks yet.</p></div>
+    </section>
+  </aside>
+</main>
+
+<div id="result-overlay" class="overlay hidden">
+  <div class="result-card">
+    <h2 id="result-headline"></h2>
+    <div id="result-body"></div>
+    <button id="again" class="primary">Deal again</button>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

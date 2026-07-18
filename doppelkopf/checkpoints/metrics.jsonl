@@ -1,0 +1,25 @@
+{"iteration": 0, "rollout": "heuristic", "samples": 1145, "buffer": 1145, "loss": 1.3549, "eval_return": -0.255, "best_eval": -0.255, "selfplay_s": 15.3, "train_s": 0.0, "eval_s": 0.1}
+{"iteration": 1, "rollout": "heuristic", "samples": 1148, "buffer": 2293, "loss": 1.2769, "eval_return": 0.015, "best_eval": 0.015, "selfplay_s": 9.2, "train_s": 0.0, "eval_s": 0.1}
+{"iteration": 2, "rollout": "heuristic", "samples": 1165, "buffer": 3458, "loss": 1.2159, "eval_return": -0.19, "best_eval": 0.015, "selfplay_s": 9.5, "train_s": 0.1, "eval_s": 0.1}
+{"iteration": 3, "rollout": "heuristic", "samples": 1145, "buffer": 4603, "loss": 1.1404, "eval_return": -0.485, "best_eval": 0.015, "selfplay_s": 9.1, "train_s": 0.1, "eval_s": 0.1}
+{"iteration": 4, "rollout": "heuristic", "samples": 1162, "buffer": 5765, "loss": 1.0744, "eval_return": -0.48, "best_eval": 0.015, "selfplay_s": 9.4, "train_s": 0.1, "eval_s": 0.1}
+{"iteration": 5, "rollout": "heuristic", "samples": 1169, "buffer": 6934, "loss": 1.0149, "eval_return": 0.375, "best_eval": 0.375, "selfplay_s": 9.5, "train_s": 0.1, "eval_s": 0.1}
+{"iteration": 6, "rollout": "net", "samples": 1148, "buffer": 8082, "loss": 0.9781, "eval_return": -0.015, "best_eval": 0.375, "selfplay_s": 60.7, "train_s": 0.2, "eval_s": 0.1}
+{"iteration": 7, "rollout": "net", "samples": 1156, "buffer": 9238, "loss": 0.9516, "eval_return": -0.295, "best_eval": 0.375, "selfplay_s": 61.4, "train_s": 0.2, "eval_s": 0.1}
+{"iteration": 8, "rollout": "net", "samples": 1145, "buffer": 10383, "loss": 0.9215, "eval_return": -0.25, "best_eval": 0.375, "selfplay_s": 62.3, "train_s": 0.2, "eval_s": 0.1}
+{"iteration": 9, "rollout": "net", "samples": 1128, "buffer": 11511, "loss": 0.8944, "eval_return": -0.29, "best_eval": 0.375, "selfplay_s": 60.8, "train_s": 0.2, "eval_s": 0.1}
+{"iteration": 10, "rollout": "net", "samples": 1155, "buffer": 12666, "loss": 0.8733, "eval_return": 0.04, "best_eval": 0.375, "selfplay_s": 62.9, "train_s": 0.2, "eval_s": 0.1}
+{"iteration": 11, "rollout": "net", "samples": 1142, "buffer": 13808, "loss": 0.853, "eval_return": -0.29, "best_eval": 0.375, "selfplay_s": 62.3, "train_s": 0.2, "eval_s": 0.1}
+{"iteration": 12, "rollout": "net", "samples": 1150, "buffer": 14958, "loss": 0.8245, "eval_return": -0.18, "best_eval": 0.375, "selfplay_s": 60.5, "train_s": 0.3, "eval_s": 0.1}
+{"iteration": 13, "rollout": "net", "samples": 1138, "buffer": 16096, "loss": 0.8084, "eval_return": 0.145, "best_eval": 0.375, "selfplay_s": 63.1, "train_s": 0.3, "eval_s": 0.1}
+{"iteration": 14, "rollout": "net", "samples": 1144, "buffer": 17240, "loss": 0.7929, "eval_return": -0.02, "best_eval": 0.375, "selfplay_s": 61.1, "train_s": 0.3, "eval_s": 0.1}
+{"iteration": 15, "rollout": "net", "samples": 1158, "buffer": 18398, "loss": 0.7859, "eval_return": -0.22, "best_eval": 0.375, "selfplay_s": 62.9, "train_s": 0.3, "eval_s": 0.1}
+{"iteration": 16, "rollout": "net", "samples": 1149, "buffer": 19547, "loss": 0.7732, "eval_return": -0.175, "best_eval": 0.375, "selfplay_s": 61.0, "train_s": 0.4, "eval_s": 0.1}
+{"iteration": 17, "rollout": "net", "samples": 1174, "buffer": 20721, "loss": 0.768, "eval_return": -0.66, "best_eval": 0.375, "selfplay_s": 62.5, "train_s": 0.4, "eval_s": 0.1}
+{"iteration": 18, "rollout": "net", "samples": 1127, "buffer": 21848, "loss": 0.7563, "eval_return": -0.095, "best_eval": 0.375, "selfplay_s": 59.4, "train_s": 0.4, "eval_s": 0.1}
+{"iteration": 19, "rollout": "net", "samples": 1146, "buffer": 22994, "loss": 0.749, "eval_return": -0.26, "best_eval": 0.375, "selfplay_s": 60.9, "train_s": 0.5, "eval_s": 0.1}
+{"iteration": 20, "rollout": "net", "samples": 1157, "buffer": 24151, "loss": 0.7519, "eval_return": -0.395, "best_eval": 0.375, "selfplay_s": 61.5, "train_s": 0.5, "eval_s": 0.1}
+{"iteration": 21, "rollout": "net", "samples": 1135, "buffer": 25286, "loss": 0.7442, "eval_return": -0.48, "best_eval": 0.375, "selfplay_s": 59.6, "train_s": 0.5, "eval_s": 0.1}
+{"iteration": 22, "rollout": "net", "samples": 1142, "buffer": 26428, "loss": 0.7428, "eval_return": -0.4, "best_eval": 0.375, "selfplay_s": 59.0, "train_s": 0.4, "eval_s": 0.1}
+{"iteration": 23, "rollout": "net", "samples": 1158, "buffer": 27586, "loss": 0.7395, "eval_return": 0.02, "best_eval": 0.375, "selfplay_s": 59.5, "train_s": 0.4, "eval_s": 0.1}
+{"pimc_eval_net": 0.229, "pimc_eval_heuristic": 0.76, "games": 96, "net_eval": 0.375, "rollout": "heuristic"}
