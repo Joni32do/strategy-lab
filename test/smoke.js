@@ -177,6 +177,25 @@ for (const id of ['chess', 'tetris', 'skat', 'tictactoe']) {
     `mdp-choice=${hasChoice} variant=${hasVariant}`);
 }
 
+/* ---- Doppelkopf: catalog entry + rulebook + rule toggles ---- */
+const dk = MDP.get('doppelkopf');
+check("MDP.get('doppelkopf') returns an entry", !!dk);
+if (dk) {
+  check('  doppelkopf is a playable spiel game',
+    dk.play && dk.play.kind === 'spiel' && dk.play.game === 'python_doppelkopf');
+  const optKeys = (dk.play.options || []).map(o => o.key).sort();
+  check('  doppelkopf exposes second_dulle + karlchen toggles',
+    optKeys.join(',') === 'karlchen,second_dulle', `keys=${optKeys.join(',')}`);
+  check('  doppelkopf toggles have label + boolean default',
+    (dk.play.options || []).every(o => o.label && typeof o.default === 'boolean'));
+  const rb = dk.rulebook;
+  check('  doppelkopf ships a rulebook with >= 5 steps', !!rb && (rb.steps || []).length >= 5);
+  check('  doppelkopf rulebook lists the two additional rules',
+    !!rb && (rb.additional || []).length === 2);
+  check('  doppelkopf rulebook items have title + text',
+    !!rb && [...(rb.steps || []), ...(rb.additional || [])].every(s => s.title && s.text));
+}
+
 const isPerm = p => Array.isArray(p) && p.length === 9 &&
   [...p].sort((a, b) => a - b).every((v, i) => v === i);
 check('Play: D4 has 8 transforms, each a permutation of 0..8',

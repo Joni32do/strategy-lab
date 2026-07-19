@@ -209,8 +209,16 @@ def register_env_api(app):
             return jsonify({"error": "pyspiel unavailable: %s" % exc}), 503
         body = request.get_json(force=True, silent=True) or {}
         game_name = body.get("game", "")
+        # Optional game parameters (e.g. Doppelkopf's rule toggles). Only
+        # JSON scalars are forwarded; the game validates the names/values.
+        params = body.get("params")
         try:
-            game = pyspiel.load_game(game_name)
+            if isinstance(params, dict) and params:
+                clean = {k: v for k, v in params.items()
+                         if isinstance(v, (bool, int, float, str))}
+                game = pyspiel.load_game(game_name, clean)
+            else:
+                game = pyspiel.load_game(game_name)
         except Exception as exc:
             return jsonify({"error": "could not load game '%s': %s" % (game_name, exc)}), 400
         seed = body.get("seed")

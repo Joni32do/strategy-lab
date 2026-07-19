@@ -24,20 +24,23 @@ class LightState:
   """A fast, plain-Python mirror of DoppelkopfState's play phase."""
 
   __slots__ = ("hands", "trick_leader", "current_trick", "tricks",
-               "re_players")
+               "re_players", "rules")
 
-  def __init__(self, hands, trick_leader, current_trick, tricks, re_players):
+  def __init__(self, hands, trick_leader, current_trick, tricks, re_players,
+               rules=scoring.DEFAULT_RULES):
     self.hands = [list(h) for h in hands]
     self.trick_leader = trick_leader
     self.current_trick = list(current_trick)
     self.tricks = list(tricks)
     self.re_players = set(re_players)
+    self.rules = rules
 
   @classmethod
   def from_state(cls, state):
     """Copies any state-like object (DoppelkopfState or LightState)."""
     return cls(state.hands, state.trick_leader, state.current_trick,
-               state.tricks, state.re_players)
+               state.tricks, state.re_players,
+               getattr(state, "rules", scoring.DEFAULT_RULES))
 
   def clone(self):
     return LightState.from_state(self)
@@ -57,14 +60,15 @@ class LightState:
     self.hands[player][card] -= 1
     self.current_trick.append(card)
     if len(self.current_trick) == cards.NUM_PLAYERS:
-      trick = scoring.Trick(self.trick_leader, self.current_trick)
+      trick = scoring.Trick(self.trick_leader, self.current_trick, self.rules)
       self.tricks.append(trick)
       self.trick_leader = trick.winner
       self.current_trick = []
 
   def returns(self):
     assert self.is_terminal()
-    return scoring.compute_result(self.re_players, self.tricks)["returns"]
+    return scoring.compute_result(
+        self.re_players, self.tricks, self.rules)["returns"]
 
   def points_taken(self):
     taken = [0] * cards.NUM_PLAYERS

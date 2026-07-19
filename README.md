@@ -166,11 +166,13 @@ now also exports `chooseMove` and `playGame` for it.
 ### Browse games as MDPs -- and play them live
 
 The home page has a genre menu (Classic & solved / Board / Card / Atari / Classic
-control); chess, skat, tetris, FrozenLake and CartPole are catalog entries -- each
-opens an explore view with the changeable MDP panel and a "where history bites" note
-(chess: castling/en-passant/repetition live in history; tetris: the 7-bag piece
-memory -- though ALE's 2600 Tetris predates 7-bag; skat: card counting and bidding
-inference; CartPole: the velocities ARE one step of compressed history).
+control); chess, skat, doppelkopf, tetris, FrozenLake and CartPole are catalog
+entries -- each opens an explore view with a collapsible step-by-step **Rulebook**
+(expanded the first time you open a game), the changeable MDP panel and a "where
+history bites" note (chess: castling/en-passant/repetition live in history; tetris:
+the 7-bag piece memory -- though ALE's 2600 Tetris predates 7-bag; skat: card
+counting and bidding inference; doppelkopf: the hidden Re/Kontra team split;
+CartPole: the velocities ARE one step of compressed history).
 When the Flask server is running, the home page also lists the live Gymnasium registry
 from the vendored submodule via GET /api/gym/envs, and the explore view verifies each
 env id against it.
@@ -185,15 +187,18 @@ server/envs.py):
   vector observations get labeled bars), or flip **policy: random** and watch a random
   policy drive from the same state -- the policy-exploration hook. Envs needing extra
   native deps (box2d, mujoco, ALE) stay browse-only.
-- **OpenSpiel** (`POST /api/spiel/new|act`): **skat** and **chess** run on the real
-  pyspiel engine (the PyPI wheel `open-spiel==1.6.15`, pinned to the same version as
-  the vendored `open_spiel/` submodule). You hold one seat, the other seats are random
-  bots, chance nodes (skat's dealing) resolve automatically; play a legal move, let a
-  random move play for you, or autoplay a whole deal to its real scoring. Verified
-  end-to-end: a full skat deal (bidding -> tricks -> declarer scoring) and chess
-  openings with legal-move strings, both through the actual UI module over HTTP
-  (server/test_envs.py covers the API; the tetris entry stays browse-only until
-  ale-py lands).
+- **OpenSpiel** (`POST /api/spiel/new|act`): **skat**, **chess** and **doppelkopf**
+  run on the real pyspiel engine (the PyPI wheel `open-spiel==1.6.15`, pinned to the
+  same version as the vendored `open_spiel/` submodule). Doppelkopf is our own game,
+  vendored at `./doppelkopf/` and registered with pyspiel as `python_doppelkopf`;
+  its two special rules (second Dulle beats the first, Karlchen) are per-game
+  checkboxes forwarded as OpenSpiel game parameters. You hold one seat, the other
+  seats are random bots, chance nodes (dealing) resolve automatically; play a legal
+  move, let a random move play for you, or autoplay a whole deal to its real scoring.
+  Verified end-to-end: a full skat deal (bidding -> tricks -> declarer scoring),
+  chess openings, and a doppelkopf deal with its rule toggles, all through the actual
+  UI module over HTTP (server/test_envs.py covers the API; the tetris entry stays
+  browse-only until ale-py lands).
 
 ## Architecture
 
@@ -204,7 +209,8 @@ js/engine.js             policy evaluation + match simulation (game-agnostic, DO
 js/games/*.js            one self-registering file per card-stack game
 js/play.js               play mode: hand-played sessions, both lenses, pure D4 symmetry helpers
 js/mdp.js                the MDP registry: schema, Markov flags, the collapsed/changeable panel
-js/gym-games.js          catalog entries: tictactoe, chess, tetris, skat, frozenlake, cartpole
+js/gym-games.js          catalog entries: tictactoe, chess, tetris, skat, doppelkopf, frozenlake, cartpole (+ rulebooks)
+doppelkopf/              our own OpenSpiel game (python_doppelkopf) + bots, search, tests
 js/env-play.js           live play panel: gym envs + open_spiel seats vs random bots
 js/ui.js                 home gallery, lab, charts, replay viewer, persistence
 test/smoke.js            headless Node tests of engine + card-stack games

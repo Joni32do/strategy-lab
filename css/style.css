@@ -514,6 +514,63 @@ code { background: var(--panel-2); padding: 1px 6px; border-radius: 6px; font-si
 .log-line { padding: 2px 0; color: var(--muted); }
 .log-line .lab0, .log-line .lab1 { font-weight: 700; }
 
+/* ---------- spiel rule toggles ---------- */
+.spiel-options {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  margin: 4px 0 14px; padding: 10px 12px;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+}
+.spiel-options .opt-label {
+  font-size: .7rem; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); font-weight: 700;
+}
+.spiel-opt {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .82rem; cursor: pointer; user-select: none;
+}
+.spiel-opt input { accent-color: var(--pick); cursor: pointer; }
+
+/* ---------- rulebook ---------- */
+.rulebook { margin: 12px 0; }
+.rulebook > summary {
+  list-style: none; cursor: pointer; font-weight: 700; font-size: 1.02rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.rulebook > summary::-webkit-details-marker { display: none; }
+.rulebook > summary::after {
+  content: '\25B8'; margin-left: auto; color: var(--muted);
+  transition: transform .15s ease;
+}
+.rulebook[open] > summary::after { transform: rotate(90deg); }
+.rulebook .rb-icon { font-size: 1.1rem; }
+.rulebook .rb-sub {
+  font-size: .72rem; color: var(--muted); font-weight: 400;
+}
+.rb-body { margin-top: 12px; }
+.rb-summary { color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+.rb-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.rb-steps { counter-reset: rb; }
+.rb-list > li {
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px;
+}
+.rb-steps > li { position: relative; padding-left: 40px; counter-increment: rb; }
+.rb-steps > li::before {
+  content: counter(rb); position: absolute; left: 10px; top: 10px;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .78rem; font-weight: 700; color: #fff;
+  background: var(--accent-grad);
+}
+.rb-step-title { display: block; font-weight: 700; margin-bottom: 3px; }
+.rb-step-text { display: block; color: var(--muted); line-height: 1.5; font-size: .9rem; }
+.rb-additional { margin-top: 14px; }
+.rb-additional-head {
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--pick); font-weight: 700; margin-bottom: 8px;
+}
+.rb-additional .rb-list > li { border-color: #3a3160; }
+
 /* ---------- responsive ---------- */
 @media (max-width: 980px) {
   .lab { grid-template-columns: 1fr 1fr; }

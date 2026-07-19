@@ -48,6 +48,19 @@ class CardsTest(absltest.TestCase):
     self.assertEqual(cards.trick_winner_offset(
         [c("9H"), c("AH"), c("KH"), c("AH")]), 1)   # First ace of two.
 
+  def test_second_dulle_rule(self):
+    # By default (rulebook special rule on) the later Dulle wins; when
+    # the rule is off the first-played Dulle keeps the trick. The rule
+    # is specific to the Dulle: other doubled trumps still go to the
+    # first-played copy.
+    self.assertTrue(cards.beats(c("10H"), c("10H")))                  # on
+    self.assertFalse(cards.beats(c("10H"), c("10H"), second_dulle=False))
+    self.assertFalse(cards.beats(c("QC"), c("QC")))                   # not a Dulle
+    two_dullen = [c("10H"), c("JC"), c("10H"), c("9D")]
+    self.assertEqual(cards.trick_winner_offset(two_dullen), 2)        # second
+    self.assertEqual(
+        cards.trick_winner_offset(two_dullen, second_dulle=False), 0)
+
   def test_follow_suit(self):
     hand = [0] * cards.NUM_CARD_TYPES
     for name in ("QC", "9D", "AS", "9H"):
@@ -147,6 +160,28 @@ class ScoringTest(absltest.TestCase):
         [("fox caught", -1), ("fox caught", -1), ("karlchen", -1)])
     self.assertEqual(result["value"], -9)
     self.assertEqual(result["returns"], [9.0, -9.0, -9.0, 9.0])
+
+  def test_karlchen_rule_can_be_switched_off(self):
+    # Same tricks, but with the Karlchen rule disabled the last-trick
+    # jack of clubs no longer scores: the -1 against Re disappears and
+    # the game value rises by one.
+    tricks = [scoring.Trick(0, [c(n) for n in names]) for names in _TRICKS]
+    no_karlchen = scoring.Rules(karlchen=False)
+    result = scoring.compute_result({1, 2}, tricks, no_karlchen)
+    self.assertNotIn("karlchen", [label for label, _ in result["specials"]])
+    self.assertEqual(result["value"], -8)
+
+
+class GameParametersTest(absltest.TestCase):
+
+  def test_rules_flow_from_game_parameters(self):
+    default = pyspiel.load_game("python_doppelkopf")
+    self.assertEqual(default.rules, scoring.Rules(True, True))
+    tuned = pyspiel.load_game(
+        "python_doppelkopf", {"second_dulle": False, "karlchen": False})
+    self.assertEqual(tuned.rules, scoring.Rules(False, False))
+    # The state a game hands out carries its rules to scoring/trick logic.
+    self.assertEqual(tuned.new_initial_state().rules, tuned.rules)
 
 
 if __name__ == "__main__":

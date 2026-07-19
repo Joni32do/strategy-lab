@@ -84,17 +84,23 @@ def card_class(card):
   return TRUMP_CLASS if is_trump(card) else suit_of(card)
 
 
-def beats(challenger, incumbent):
+def beats(challenger, incumbent, second_dulle=True):
   """True if `challenger` beats the currently winning `incumbent` card.
 
   The incumbent was played earlier in the trick, so equal cards do not
-  beat it (first-played wins between identical cards). A plain-suit
-  challenger can only win if it matches the incumbent's suit; since the
-  incumbent is always either a trump or of the led suit, this enforces
-  the led-suit rule.
+  beat it (first-played wins between identical cards) -- with one
+  optional exception: when `second_dulle` is on, the later of the two
+  Dullen (10 of hearts) beats the earlier one. A plain-suit challenger
+  can only win if it matches the incumbent's suit; since the incumbent
+  is always either a trump or of the led suit, this enforces the
+  led-suit rule.
   """
   ts_c, ts_i = trump_strength(challenger), trump_strength(incumbent)
   if ts_c is not None and ts_i is not None:
+    if ts_c == ts_i:
+      # Equal trump strength means the same card type. Only the two
+      # Dullen may swap order, and only under the second-Dulle rule.
+      return second_dulle and challenger == DULLE
     return ts_c > ts_i
   if ts_c is not None:
     return True
@@ -107,11 +113,11 @@ def beats(challenger, incumbent):
   return card_points(challenger) > card_points(incumbent)
 
 
-def trick_winner_offset(cards):
+def trick_winner_offset(cards, second_dulle=True):
   """Index (0-3, play order) of the winning card in a complete trick."""
   best = 0
   for i in range(1, len(cards)):
-    if beats(cards[i], cards[best]):
+    if beats(cards[i], cards[best], second_dulle=second_dulle):
       best = i
   return best
 

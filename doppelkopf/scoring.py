@@ -4,17 +4,41 @@ Kept free of any OpenSpiel dependency so it can be unit-tested directly
 and reused by the CLI for the final score breakdown.
 """
 
+import dataclasses
+
 from doppelkopf import cards
+
+
+@dataclasses.dataclass(frozen=True)
+class Rules:
+  """Toggleable special rules a rulebook lists on top of the base game.
+
+  The defaults are the common tournament conventions:
+
+    second_dulle: the later of the two 10-hearts (the "Dulle") beats the
+      earlier one, so a Dulle can be over-trumped by the other Dulle.
+      With this off, identical cards keep the first-played-wins rule and
+      the first Dulle stays on top.
+    karlchen: winning the very last trick with a jack of clubs earns an
+      extra game point ("Karlchen"). With this off it scores nothing.
+  """
+
+  second_dulle: bool = True
+  karlchen: bool = True
+
+
+DEFAULT_RULES = Rules()
 
 
 class Trick:
   """A completed trick: who led, the four cards in play order."""
 
-  def __init__(self, leader, played):
+  def __init__(self, leader, played, rules=DEFAULT_RULES):
     assert len(played) == cards.NUM_PLAYERS
     self.leader = leader
     self.cards = list(played)
-    offset = cards.trick_winner_offset(self.cards)
+    offset = cards.trick_winner_offset(self.cards,
+                                       second_dulle=rules.second_dulle)
     self.winner = (leader + offset) % cards.NUM_PLAYERS
     self.winning_card = self.cards[offset]
     self.points = sum(cards.card_points(c) for c in self.cards)
@@ -24,12 +48,13 @@ class Trick:
     return (self.leader + index) % cards.NUM_PLAYERS
 
 
-def compute_result(re_players, tricks):
+def compute_result(re_players, tricks, rules=DEFAULT_RULES):
   """Scores a finished game.
 
   Args:
     re_players: set of seats holding a club queen at the deal.
     tricks: list of 12 completed Tricks.
+    rules: the Rules in force (which special points are awarded).
 
   Returns:
     A dict with the full breakdown:
@@ -76,9 +101,10 @@ def compute_result(re_players, tricks):
     if t.points >= 40:
       specials.append(("doppelkopf", winner_sign))
   # Karlchen: winning the last trick with a jack of clubs.
-  last = tricks[-1]
-  if last.winning_card == cards.CLUB_JACK:
-    specials.append(("karlchen", 1 if is_re[last.winner] else -1))
+  if rules.karlchen:
+    last = tricks[-1]
+    if last.winning_card == cards.CLUB_JACK:
+      specials.append(("karlchen", 1 if is_re[last.winner] else -1))
 
   base_total = sum(v for _, v in base)
   special_total = sum(sign for _, sign in specials)

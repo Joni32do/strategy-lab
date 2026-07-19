@@ -17,6 +17,7 @@ window.UI = (function () {
   let stacks = {};   // gameId -> [ruleId]
   let bots = {};     // gameId -> presetId
   let beaten = {};   // gameId -> { presetId: true }
+  let opened = {};   // gameId -> true once its explore page has been opened
   let game = null;   // game currently open in the lab
   let last = null;   // last match data
   let dragIndex = null;
@@ -32,11 +33,12 @@ window.UI = (function () {
       stacks = d.stacks || {};
       bots = d.bots || {};
       beaten = d.beaten || {};
-    } catch (e) { stacks = {}; bots = {}; beaten = {}; }
+      opened = d.opened || {};
+    } catch (e) { stacks = {}; bots = {}; beaten = {}; opened = {}; }
   }
   function saveStore() {
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({ stacks, bots, beaten }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ stacks, bots, beaten, opened }));
     } catch (e) { /* private mode etc. — non-fatal */ }
   }
 
@@ -224,11 +226,44 @@ window.UI = (function () {
     };
   }
 
+  /* A collapsible, step-by-step rulebook for a catalog game. Returns ''
+   * for games that ship no rulebook (they simply show nothing). Opens
+   * expanded the first time a game is viewed, collapsed thereafter. */
+  function ruleItemsHTML(items) {
+    return (items || []).map(s =>
+      `<li><span class="rb-step-title">${MDP.esc(s.title)}</span>` +
+      `<span class="rb-step-text">${MDP.esc(s.text)}</span></li>`).join('');
+  }
+
+  function rulebookHTML(e, open) {
+    const rb = e.rulebook;
+    if (!rb) return '';
+    const additional = (rb.additional || []).length
+      ? `<div class="rb-additional">
+           <div class="rb-additional-head">Additional rules</div>
+           <ul class="rb-list">${ruleItemsHTML(rb.additional)}</ul>
+         </div>`
+      : '';
+    return `
+      <details class="rulebook panel"${open ? ' open' : ''}>
+        <summary><span class="rb-icon">\u{1F4D6}</span> Rulebook
+          <span class="rb-sub">how ${MDP.esc(e.name)} is played, step by step</span></summary>
+        <div class="rb-body">
+          ${rb.summary ? `<p class="rb-summary">${MDP.esc(rb.summary)}</p>` : ''}
+          <ol class="rb-list rb-steps">${ruleItemsHTML(rb.steps)}</ol>
+          ${additional}
+        </div>
+      </details>`;
+  }
+
   /* ============================= EXPLORE =============================
    * Browse-only view of a catalog game: what it is, where history
-   * bites, and the collapsed-but-changeable MDP panel. */
+   * bites, the rulebook, and the collapsed-but-changeable MDP panel. */
   function showExplore(e) {
     game = null;
+    // Expand the rulebook on the very first visit, then remember it.
+    const firstOpen = !!e.rulebook && !opened[e.id];
+    if (e.rulebook && !opened[e.id]) { opened[e.id] = true; saveStore(); }
     root().innerHTML = `
       <header class="bar">
         <button class="ghost" id="back">&lsaquo; All games</button>
@@ -237,6 +272,7 @@ window.UI = (function () {
         <span class="chip">engine: ${MDP.esc(e.backend)}</span>
         <span class="chip">${e.players} player${e.players === 1 ? '' : 's'}</span>
       </header>
+      ${rulebookHTML(e, firstOpen)}
       <main class="duo explore">
         <section class="panel">
           <h2>About</h2>

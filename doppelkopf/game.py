@@ -32,6 +32,12 @@ _GAME_TYPE = pyspiel.GameType(
     provides_information_state_tensor=False,
     provides_observation_string=True,
     provides_observation_tensor=True,
+    parameter_specification={
+        # Optional special rules (see scoring.Rules). Defaults match the
+        # common tournament conventions.
+        "second_dulle": True,
+        "karlchen": True,
+    },
 )
 
 # Bound on |game value|: 6 base points, up to 9 net special points, and a
@@ -54,6 +60,10 @@ class DoppelkopfGame(pyspiel.Game):
 
   def __init__(self, params=None):
     super().__init__(_GAME_TYPE, _GAME_INFO, params or dict())
+    p = self.get_parameters()
+    self.rules = scoring.Rules(
+        second_dulle=bool(p.get("second_dulle", True)),
+        karlchen=bool(p.get("karlchen", True)))
 
   def new_initial_state(self):
     return DoppelkopfState(self)
@@ -69,6 +79,7 @@ class DoppelkopfState(pyspiel.State):
 
   def __init__(self, game):
     super().__init__(game)
+    self.rules = game.rules
     # Remaining physical copies of each card type during the deal.
     self._deck_counts = [2] * cards.NUM_CARD_TYPES
     self._num_dealt = 0
@@ -115,7 +126,7 @@ class DoppelkopfState(pyspiel.State):
     self.hands[player][action] -= 1
     self.current_trick.append(action)
     if len(self.current_trick) == cards.NUM_PLAYERS:
-      trick = scoring.Trick(self.trick_leader, self.current_trick)
+      trick = scoring.Trick(self.trick_leader, self.current_trick, self.rules)
       self.tricks.append(trick)
       self.trick_leader = trick.winner
       self.current_trick = []
@@ -144,7 +155,7 @@ class DoppelkopfState(pyspiel.State):
   def result(self):
     """Full scoring breakdown; only valid on a terminal state."""
     assert self.is_terminal()
-    return scoring.compute_result(self.re_players, self.tricks)
+    return scoring.compute_result(self.re_players, self.tricks, self.rules)
 
   def points_taken(self):
     """Card points captured so far, per seat (public information)."""

@@ -22,17 +22,22 @@ panel.
 - A player dealt both club queens plays a **silent wedding**: alone as
   Re against three, for triple the score.
 
-Simplifications vs. tournament rules: no reservations/solos, no
-Re/Kontra announcements, and between two identical cards the
-first-played one wins (including the two Dullen).
+Two special rules are toggleable (game parameters `second_dulle` and
+`karlchen`, both on by default; see `scoring.Rules`): the later of the
+two Dullen beats the earlier one, and winning the last trick with a J-C
+scores a Karlchen. Between any other two identical cards the
+first-played one still wins.
+
+Simplifications vs. tournament rules: no reservations/solos and no
+Re/Kontra announcements.
 
 ## Play in the browser
 
-From the `open_spiel` repository root (the venv of the parent
-`strategy-lab` project has `pyspiel`, `numpy` and `flask` installed):
+From the `strategy-lab` repository root (its venv has `pyspiel` -- via
+the `open-spiel` wheel -- plus `numpy` and `flask` installed):
 
 ```
-../.venv/bin/python -m doppelkopf.web        # http://127.0.0.1:8360
+.venv/bin/python -m doppelkopf.web        # http://127.0.0.1:8360
 ```
 
 You sit south against three bots (rule-based "heuristic" or the
@@ -44,9 +49,9 @@ Query parameters give a quick start: `/?seed=42&opponents=master`.
 ## Play in the terminal
 
 ```
-../.venv/bin/python -m doppelkopf.cli            # you vs three bots
-../.venv/bin/python -m doppelkopf.cli --auto     # watch four bots
-../.venv/bin/python -m doppelkopf.cli --seed 42 --fast
+.venv/bin/python -m doppelkopf.cli            # you vs three bots
+.venv/bin/python -m doppelkopf.cli --auto     # watch four bots
+.venv/bin/python -m doppelkopf.cli --seed 42 --fast
 ```
 
 ## Train the master bot
@@ -65,9 +70,9 @@ The bot stack has three layers:
    making the expert itself stronger.
 
 ```
-../.venv/bin/python -m doppelkopf.train                  # default run
-../.venv/bin/python -m doppelkopf.train --resume         # keep going
-../.venv/bin/python -m doppelkopf.train --help           # all knobs
+.venv/bin/python -m doppelkopf.train                  # default run
+.venv/bin/python -m doppelkopf.train --resume         # keep going
+.venv/bin/python -m doppelkopf.train --help           # all knobs
 ```
 
 Training writes `checkpoints/master.npz` (+ `master.json` recording
@@ -107,11 +112,11 @@ state strings are provided.
   `bots_test.py` (heuristic bot), `ai_test.py` (worlds, policy net,
   search, training), `web_test.py` (web API).
 
-Run the tests from the repository root:
+Run the tests from the `strategy-lab` repository root:
 
 ```
 for t in doppelkopf_test bots_test ai_test web_test; do
-  ../.venv/bin/python -m doppelkopf.$t
+  .venv/bin/python -m doppelkopf.$t
 done
 ```
 
@@ -125,4 +130,3 @@ done
 
 ### Features
 * Instead of hints while playing, game review after the game
-

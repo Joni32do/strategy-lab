@@ -111,6 +111,32 @@ def main():
     assert code == 200 and (d["terminal"] or d["cur"] == d["humanSeat"]), d
     print("ok  spiel chess: FEN obs, 20 openings, illegal rejected, bot replied")
 
+    # ---- open_spiel: doppelkopf is registered (vendored python game) ----
+    d = c.get("/api/gym/envs").get_json()
+    assert "python_doppelkopf" in d["open_spiel"]["games"], d["open_spiel"]
+    code, d = post(c, "/api/spiel/new", {"game": "python_doppelkopf", "seed": 7})
+    assert code == 200 and d["players"] == 4 and d["terminal"] is False, d
+    assert d["cur"] == d["humanSeat"] and len(d["legal"]) >= 1, d
+    assert d["obs"].startswith("p0 hand:"), d["obs"][:40]
+    print("ok  spiel doppelkopf: registered, dealt, human to play (%d legal)"
+          % len(d["legal"]))
+
+    # rule toggles ride along as game parameters; a full deal still ends
+    # zero-sum whether the special rules are on or off
+    code, d = post(c, "/api/spiel/new", {
+        "game": "python_doppelkopf", "seed": 7,
+        "params": {"second_dulle": False, "karlchen": False}})
+    assert code == 200, d
+    sid = d["sid"]
+    guard = 0
+    while not d["terminal"] and guard < 300:
+        code, d = post(c, "/api/spiel/%s/act" % sid, {"policy": "random"})
+        assert code == 200, d
+        guard += 1
+    assert d["terminal"] and len(d["returns"]) == 4, d
+    assert abs(sum(d["returns"])) < 1e-6, d["returns"]
+    print("ok  spiel doppelkopf: rule params applied, deal terminates zero-sum")
+
     code, d = post(c, "/api/spiel/new", {"game": "no_such_game"})
     assert code == 400, d
     print("ok  spiel/new refuses unknown game")

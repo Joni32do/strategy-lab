@@ -49,6 +49,17 @@
           + 'The play-mode RL lens shows this fold live on every position.',
       },
     ],
+    rulebook: {
+      summary: 'Two players, X and O, take turns marking a 3x3 grid.',
+      steps: [
+        { title: 'The board', text: 'A 3x3 grid of empty squares. X moves first, then '
+          + 'players alternate placing their mark on any empty square.' },
+        { title: 'Winning', text: 'The first player to line up three of their marks in a '
+          + 'row, column or diagonal wins immediately.' },
+        { title: 'Draw', text: 'If all nine squares fill with no three-in-a-row, the game '
+          + 'is a draw. With perfect play from both sides it always is.' },
+      ],
+    },
   });
 
   /* Chess — perfect information, but the board alone is not the state.
@@ -105,6 +116,20 @@
           + 'next capture or pawn move resets it.',
       },
     ],
+    rulebook: {
+      summary: 'The classic two-player board game; White moves first.',
+      steps: [
+        { title: 'The goal', text: 'Checkmate the opposing king - attack it so that it '
+          + 'cannot escape capture on the next move. Stalemate (no legal move but not in '
+          + 'check) and several other conditions are draws.' },
+        { title: 'The pieces', text: 'Each side has a king, queen, two rooks, two bishops, '
+          + 'two knights and eight pawns, each moving in its own way. Pawns promote on '
+          + 'reaching the far rank.' },
+        { title: 'Special rules', text: 'Castling, en passant capture, and the threefold-'
+          + 'repetition and fifty-move draw rules all depend on history the board alone '
+          + 'does not show - which is exactly what the MDP panel above is about.' },
+      ],
+    },
   });
 
   /* Tetris — single-player, but the "physics" (gravity, falling motion)
@@ -219,6 +244,161 @@
           + 'for which optimal imperfect-information play is well defined.',
       },
     ],
+    rulebook: {
+      summary: 'A three-player German trick game: one declarer against two defenders.',
+      steps: [
+        { title: 'Deal and auction', text: 'Each player gets ten cards; two go face down '
+          + 'in the skat. Players bid for the right to be declarer, naming how high a game '
+          + 'they will play.' },
+        { title: 'Declaration', text: 'The declarer picks the game type (a trump suit, '
+          + 'grand, or null), optionally taking the skat first, and plays alone against '
+          + 'the other two.' },
+        { title: 'Winning', text: 'Follow suit if you can. The declarer needs 61 of the 120 '
+          + 'card points to win the hand; the two defenders share the rest and win by '
+          + 'holding the declarer under 61.' },
+      ],
+    },
+  });
+
+  /* Doppelkopf — a 4-player partnership trick game, imperfect
+   * information twice over: you cannot see the other hands AND you do
+   * not even know for sure who your partner is until a club queen
+   * shows. The vendored python_doppelkopf OpenSpiel game (./doppelkopf)
+   * powers live play; two special rules are toggleable below. */
+  MDP.register({
+    id: 'doppelkopf',
+    name: 'Doppelkopf',
+    icon: '\u{1F0CA}',            // playing card ten of hearts (the "Dulle")
+    genre: 'card',
+    players: 4,
+    backend: 'open_spiel',
+    envId: 'python_doppelkopf',
+    play: {
+      kind: 'spiel',
+      game: 'python_doppelkopf',
+      // Rule toggles forwarded as OpenSpiel game parameters. Defaults
+      // match scoring.Rules; see the rulebook's "Additional rules".
+      options: [
+        {
+          key: 'second_dulle', default: true,
+          label: 'Second 10H beats the first',
+          note: 'With two Dullen in a trick, the later-played one wins.',
+        },
+        {
+          key: 'karlchen', default: true,
+          label: 'Karlchen',
+          note: 'Winning the last trick with a JC scores a bonus point.',
+        },
+      ],
+    },
+    blurb: 'A 4-player partnership trick game where imperfect information cuts twice: '
+      + 'you cannot see the other three hands, and you do not even know for certain '
+      + 'who your partner is - the two players holding a queen of clubs are the hidden '
+      + 'Re team, revealed only as the queens are played.',
+    history: 'your own hand and the current trick hide two different things: the 46 '
+      + 'cards you cannot see, and the team split. Who has played a club queen, who '
+      + 'failed to follow a suit, and which points have already been captured all live '
+      + 'in the history - a memoryless agent cannot tell friend from foe.',
+    defaultMdp: 'info-set',
+    mdps: [
+      {
+        id: 'hand-trick', name: 'Own hand + current trick', markov: false,
+        state: 'your own hand plus the cards on the table in the current trick',
+        actions: 'legal cards to play (follow the led trump or suit if you can)',
+        reward: 'card points -> game value for Re vs Kontra at the end of the deal',
+        note: 'blind to the whole game: you cannot count captured points and, worse, '
+          + 'you cannot tell which seats are your partners.',
+      },
+      {
+        id: 'hand-trick-counted',
+        name: 'Own hand + trick + cards played + known teams', markov: 'approx',
+        state: 'own hand + current trick + every card played so far + points captured '
+          + 'per seat + which seats have shown a club queen',
+        actions: 'legal cards to play (follow the led class if you can)',
+        reward: 'card points -> game value for Re vs Kontra',
+        note: 'lets you count points and read revealed teams, but still drops the '
+          + 'exact order of play that inference about the two hidden hands needs.',
+      },
+      {
+        id: 'info-set', name: 'Full information set (ordered play history)', markov: true,
+        state: 'the entire observed history - every card played, in order and by whom, '
+          + 'the club queens seen (team reveals), and your own dealt hand',
+        actions: 'one legal card per turn, twelve tricks in all',
+        reward: 'Re wins with 121+ card points; game value adds no-90/60/30, schwarz, '
+          + '"against the queens" and the special points below, tripled for a lone Re',
+        note: 'this is the information state OpenSpiel operates on - the only formulation '
+          + 'in which optimal imperfect-information play is well defined.',
+      },
+    ],
+    rulebook: {
+      summary: 'The German four-player trick-taking classic. You sit South against three '
+        + 'bots; card notation matches the observation panel (10H = ten of hearts, '
+        + 'QC = queen of clubs, AD = ace of diamonds).',
+      steps: [
+        {
+          title: 'The deck (48 cards, 240 points)',
+          text: 'A doubled 24-card deck: 9, 10, J, Q, K, A in clubs, spades, hearts and '
+            + 'diamonds, every card present twice. Card points: A=11, 10=10, K=4, Q=3, '
+            + 'J=2, 9=0, for 240 points in all. Each of the four players is dealt 12 cards.',
+        },
+        {
+          title: 'Hidden teams: Re vs Kontra',
+          text: 'The two players dealt a queen of clubs (QC) form the Re team; the other '
+            + 'two are Kontra. You are not told who your partner is - the teams reveal '
+            + 'themselves only as the club queens are played. Re wins the deal with 121 '
+            + 'of the 240 card points.',
+        },
+        {
+          title: 'Trumps and their order',
+          text: 'One big trump suit, strongest first: 10H (the "Dulle"), then QC QS QH QD, '
+            + 'then JC JS JH JD, then AD 10D KD 9D. Every diamond is a trump. All clubs, '
+            + 'spades and hearts that are not listed above are plain cards, ranked '
+            + 'A > 10 > K > 9 within their suit.',
+        },
+        {
+          title: 'Following suit',
+          text: 'The first card of a trick sets the led class - either "trump" (any trump, '
+            + 'including all diamonds and the Dulle) or a plain suit. You must play a card '
+            + 'of the led class if you hold one; only if you are void may you discard or '
+            + 'trump in.',
+        },
+        {
+          title: 'Winning a trick',
+          text: 'The highest trump in the trick wins it; if no trump was played, the '
+            + 'highest card of the led suit wins. Between two otherwise identical cards '
+            + 'the first one played wins (but see the Dulle rule below). The winner '
+            + 'collects the cards and leads the next trick.',
+        },
+        {
+          title: 'Scoring the deal',
+          text: 'The side that took 121+ points wins one game point, plus a point each '
+            + 'for holding the loser under 90, under 60, under 30, and to zero tricks '
+            + '(schwarz). Kontra winning also scores "against the queens". Extra special '
+            + 'points: catching a fox (the other team winning a trick that contains an AD) '
+            + 'and a "Doppelkopf" (a single trick worth 40+ points).',
+        },
+        {
+          title: 'Silent wedding',
+          text: 'If one player is dealt both club queens they play a silent wedding: alone '
+            + 'as Re against the other three, for triple the game value.',
+        },
+      ],
+      additional: [
+        {
+          title: 'Second 10H beats the first (toggle: second_dulle)',
+          text: 'The 10H (Dulle) is normally the single highest trump. Under this common '
+            + 'rule, when both Dullen fall in the same trick the later-played one beats '
+            + 'the earlier one - so a Dulle can be over-trumped, but only by the other '
+            + 'Dulle. Switch it off in the play options to make the first Dulle unbeatable.',
+        },
+        {
+          title: 'Karlchen (toggle: karlchen)',
+          text: 'Winning the very last trick of the deal with a jack of clubs (JC) scores '
+            + 'one extra game point, the "Karlchen". Off by choice in the options; on by '
+            + 'default.',
+        },
+      ],
+    },
   });
 
   /* FrozenLake — a tiny gridworld, but "tiny" hides a choice: with a

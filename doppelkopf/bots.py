@@ -46,21 +46,25 @@ class HeuristicBot:
   # --- Following in a trick ---
 
   def _follow(self, state, legal):
+    second_dulle = getattr(state, "rules", None)
+    second_dulle = second_dulle.second_dulle if second_dulle else True
     trick = state.current_trick
-    win_offset = cards.trick_winner_offset(trick)
+    win_offset = cards.trick_winner_offset(trick, second_dulle=second_dulle)
     winning_seat = (state.trick_leader + win_offset) % cards.NUM_PLAYERS
     winning_card = trick[win_offset]
     trick_points = sum(cards.card_points(c) for c in trick)
     last_to_play = len(trick) == cards.NUM_PLAYERS - 1
 
-    winners = [c for c in legal if cards.beats(c, winning_card)]
+    winners = [c for c in legal
+               if cards.beats(c, winning_card, second_dulle=second_dulle)]
 
     if self._is_teammate(state, winning_seat):
       # Partner has the trick: feed it points ("schmieren"), or if the
       # partner's card is weak and the trick is fat, take over cheaply.
       if last_to_play or self._card_is_solid(winning_card):
         return self._fattest(legal)
-      safe = [c for c in legal if not cards.beats(c, winning_card)]
+      safe = [c for c in legal
+              if not cards.beats(c, winning_card, second_dulle=second_dulle)]
       if trick_points >= 10 and winners:
         return self._cheapest_of_winners(winners)
       return self._fattest(safe) if safe else self._cheapest(legal)

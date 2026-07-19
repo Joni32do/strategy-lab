@@ -248,8 +248,16 @@ window.EnvPlay = (function () {
   }
 
   /* =========================== SPIEL ============================= */
+  /* Default rule-toggle values for a spiel game (see catalog play.options). */
+  function spielDefaultOpts(entry) {
+    const opts = {};
+    (entry.play.options || []).forEach(o => { opts[o.key] = !!o.default; });
+    return opts;
+  }
+
   function mountSpiel(entry, host) {
-    S = { kind: 'spiel', entry, host, data: null, sid: null, autoplaying: false };
+    S = { kind: 'spiel', entry, host, data: null, sid: null, autoplaying: false,
+          opts: spielDefaultOpts(entry) };
     startSpiel();
   }
 
@@ -258,7 +266,9 @@ window.EnvPlay = (function () {
     s.autoplaying = false;
     const my = token;
     s.host.innerHTML = '<h2>' + esc(s.entry.name) + ' <span class="h-sub">dealing&hellip;</span></h2>';
-    post('/api/spiel/new', { game: s.entry.play.game, seed: randSeed() })
+    const body = { game: s.entry.play.game, seed: randSeed() };
+    if (s.entry.play.options && s.entry.play.options.length) body.params = s.opts;
+    post('/api/spiel/new', body)
       .then(d => { if (!alive(my) || S !== s) return; s.data = d; s.sid = d.sid; renderSpiel(); })
       .catch(err => { if (alive(my)) showError(s.host, err); });
   }
@@ -290,9 +300,11 @@ window.EnvPlay = (function () {
     const d = s.data;
     const head = 'You are player <b class="lab0">' + d.humanSeat + '</b> of ' + d.players +
       ' <span class="h-sub">other seats: random bot</span>';
+    const hasOpts = s.entry.play.options && s.entry.play.options.length;
     s.host.innerHTML =
       '<h2>' + esc(s.entry.name) + ' <span class="h-sub">live open_spiel game</span></h2>' +
       '<div class="mode-note">' + head + '</div>' +
+      (hasOpts ? '<div class="spiel-options" id="spiel-options"></div>' : '') +
       (d.terminal ? spielReturnsHTML(d) : '') +
       '<pre class="env-render">' + esc(d.obs || '') + '</pre>' +
       (d.terminal ? '' : '<div class="legal-moves" id="spiel-legal"></div>') +
@@ -300,8 +312,33 @@ window.EnvPlay = (function () {
       '<h3>Move log</h3>' +
       '<div class="log-panel" id="spiel-log">' + spielLogHTML(d.log, d.humanSeat) + '</div>';
 
+    fillSpielOptions();
     fillSpielLegal();
     fillSpielControls();
+  }
+
+  /* Rule toggles (catalog play.options). Flipping one deals a fresh game
+   * so the new rule visibly takes effect. */
+  function fillSpielOptions() {
+    const s = S;
+    const host = $('#spiel-options');
+    if (!host) return;
+    host.innerHTML = '<span class="opt-label">Rules</span>';
+    (s.entry.play.options || []).forEach(o => {
+      const wrap = document.createElement('label');
+      wrap.className = 'spiel-opt';
+      if (o.note) wrap.title = o.note;
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!s.opts[o.key];
+      cb.addEventListener('change', () => {
+        s.opts[o.key] = cb.checked;
+        startSpiel();
+      });
+      wrap.appendChild(cb);
+      wrap.appendChild(document.createTextNode(' ' + o.label));
+      host.appendChild(wrap);
+    });
   }
 
   function fillSpielLegal() {

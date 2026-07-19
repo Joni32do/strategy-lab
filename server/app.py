@@ -50,6 +50,18 @@ from policy import (
 )
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# The vendored Doppelkopf game lives at ./doppelkopf (repo root, one level
+# up from this server package). Import it so it registers itself with
+# pyspiel and /api/spiel can serve "python_doppelkopf" like any other game.
+import sys
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+try:
+    import doppelkopf.game  # noqa: F401  registers "python_doppelkopf"
+except Exception as exc:  # pyspiel/numpy missing, or package moved
+    print("doppelkopf game not registered:", exc)
+
 app = Flask(__name__, static_folder=None)
 CORS(app)
 register_env_api(app)   # /api/env/* (gymnasium) + /api/spiel/* (open_spiel)
