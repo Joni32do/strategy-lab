@@ -9,6 +9,7 @@ the catanatron engine here. This server only:
 
 Run:  uv run python server/app.py   (serves the whole app at :8000)
 """
+import argparse
 import os
 import random
 import uuid
@@ -65,6 +66,10 @@ except Exception as exc:  # pyspiel/numpy missing, or package moved
 app = Flask(__name__, static_folder=None)
 CORS(app)
 register_env_api(app)   # /api/env/* (gymnasium) + /api/spiel/* (open_spiel)
+
+SKIN_IDS = ["original", "minimal"]
+DEFAULT_SKIN = "original"
+app.config.setdefault("SKIN", DEFAULT_SKIN)
 
 GAMES = {}  # game_id -> dict(game, you_color, weights, tp, players)
 
@@ -171,6 +176,11 @@ def serialize_state(game, you_color, weights):
 # --------------------------------------------------------------------------- #
 # API
 # --------------------------------------------------------------------------- #
+@app.get("/api/config")
+def config():
+    return jsonify({"skin": app.config.get("SKIN", DEFAULT_SKIN), "skins": SKIN_IDS})
+
+
 @app.get("/api/defaults")
 def defaults():
     w, tp = MetricWeights(), TradeParams()
@@ -358,7 +368,7 @@ def gym_envs():
 # --------------------------------------------------------------------------- #
 @app.get("/")
 def index():
-    return send_from_directory(ROOT, "catan.html")
+    return send_from_directory(ROOT, "index.html")
 
 
 @app.get("/<path:path>")
@@ -366,5 +376,15 @@ def static_files(path):
     return send_from_directory(ROOT, path)
 
 
+def build_arg_parser():
+    parser = argparse.ArgumentParser(description="Strategy Lab server")
+    parser.add_argument("--skin", choices=SKIN_IDS, default=DEFAULT_SKIN)
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=8000)
+    return parser
+
+
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=8000, debug=False)
+    args = build_arg_parser().parse_args()
+    app.config["SKIN"] = args.skin
+    app.run(host=args.host, port=args.port, debug=False)

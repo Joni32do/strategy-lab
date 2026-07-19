@@ -148,3 +148,21 @@ label.inline { font-size: .8rem; color: var(--muted); display: inline-flex; gap:
 .exp-legend .sw.acc { background: #3fb37f; }
 .exp-legend .sw.rej { background: #e0637f; }
 .exp-legend .sw.vet { background: repeating-linear-gradient(45deg, #2a2f4a, #2a2f4a 3px, #3a4270 3px, #3a4270 6px); }
+
+/* ============ skins: page-chrome re-theme ============
+   The chrome above already reads --bg/--panel/--panel-2/--border/--text/
+   --muted/--pick/--accent-grad from css/style.css, so any :root override
+   those variables gain per active skin flows straight through.
+   The "minimal" skin additionally flattens a few chrome accents here (button
+   fill, title gradient, curve-box border) so the switch is visible even
+   before such overrides exist. Board tiles/pieces (RESFILL/ICON in
+   js/catan-lab.js, and the .hex/.hex-num/.node-bldg strokes above) are
+   untouched by any skin — out of scope. */
+body.skin-minimal .btn {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+}
+body.skin-minimal .btn:hover { filter: none; border-color: var(--muted); }
+body.skin-minimal .cl-top .grad {
+  background: none; -webkit-text-fill-color: currentColor; color: var(--text);
+}
+body.skin-minimal .curve-box { border-style: dashed; }

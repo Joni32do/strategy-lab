@@ -584,3 +584,94 @@ code { background: var(--panel-2); padding: 1px 6px; border-radius: 6px; font-si
   .ttt-board { grid-template-columns: repeat(3, 64px); }
   .ttt-cell { height: 64px; font-size: 2rem; }
 }
+
+/* ---------- skins: switcher ---------- */
+.skin-switcher {
+  position: fixed; right: 16px; bottom: 16px; z-index: 40;
+  display: flex; gap: 6px; padding: 6px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 999px; box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
+}
+.skin-switcher button {
+  padding: 5px 12px; border-radius: 999px; font-size: .78rem;
+  color: var(--muted); background: transparent; border: 1px solid transparent;
+  transition: color .15s ease, background .15s ease, border-color .15s ease;
+}
+.skin-switcher button:hover { color: var(--text); background: var(--panel-2); }
+.skin-switcher button.on {
+  color: #fff; background: var(--pick); border-color: var(--pick);
+}
+
+/* ---------- skins: rulebook book icon ---------- */
+.play-canvas { position: relative; }
+.cl-top.rb-anchor { position: relative; }
+.book-icon {
+  position: absolute; top: 8px; right: 8px; z-index: 5;
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); background: var(--panel-2);
+  border: 1px solid var(--border);
+  transition: color .15s ease, background .15s ease, border-color .15s ease;
+}
+.book-icon:hover { color: var(--text); background: var(--panel); border-color: var(--pick); }
+.book-icon svg { width: 20px; height: 20px; }
+
+/* ---------- skins: rulebook side panel ---------- */
+.rb-scrim {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(6, 8, 18, .55);
+  opacity: 0; transition: opacity .22s ease;
+}
+.rb-scrim.open { opacity: 1; }
+.rb-scrim[hidden] { display: none; }
+.rulebook-panel {
+  position: fixed; top: 0; right: 0; height: 100vh; width: min(420px, 92vw);
+  z-index: 100; background: var(--panel);
+  border-left: 1px solid var(--border);
+  padding: 20px 20px 24px;
+  transform: translateX(100%); transition: transform .22s ease;
+  box-shadow: -12px 0 32px rgba(0, 0, 0, .4);
+}
+.rulebook-panel.open { transform: translateX(0); }
+.rulebook-panel[hidden] { display: block; }
+.rb-close {
+  position: absolute; top: 12px; right: 12px;
+  width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.05rem; color: var(--muted); background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+.rb-close:hover { color: var(--text); }
+.rb-panel-body {
+  margin-top: 34px; overflow-y: auto; max-height: calc(100vh - 60px);
+}
+
+/* ===== minimal skin ===== */
+.min-home { max-width: 720px; margin: 0 auto; padding: 20px 0 60px; }
+.min-title {
+  font-size: 1.1rem; font-weight: 700; letter-spacing: .02em;
+  color: var(--muted); margin-bottom: 28px;
+}
+.min-genre { margin-bottom: 30px; }
+.min-genre h2 {
+  font-size: .78rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--muted); margin: 0 0 10px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.min-list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.min-name {
+  display: block; width: 100%; text-align: left;
+  padding: 9px 4px; font-size: 1.05rem; color: var(--text);
+  border-radius: 8px; transition: color .12s ease, background .12s ease;
+}
+.min-name:not(:disabled):hover { color: var(--pick); background: var(--panel-2); }
+.min-name.soon { color: var(--muted); cursor: default; opacity: .55; }
+.min-back {
+  display: inline-block; margin-bottom: 16px; padding: 6px 4px;
+  color: var(--muted); font-size: .85rem;
+}
+.min-back:hover { color: var(--text); }
+.min-browse p { margin-top: 10px; color: var(--text); }
+.min-browse p.muted { margin-top: 14px; }
+
+body.skin-minimal #app { max-width: 760px; }
