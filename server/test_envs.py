@@ -48,6 +48,49 @@ def main():
     assert code == 200 and isinstance(d["obs"], list), d
     print("ok  CartPole: 4-dim obs vector, steps fine without render")
 
+    # ---- Qwixx: the lab's own gym env (server/qwixx_env.py) ----
+    code, d = post(c, "/api/env/new", {"envId": "strategy_lab/Qwixx-v0", "seed": 5})
+    assert code == 200, d
+    assert d["actionSpace"]["type"] == "discrete" and d["actionSpace"]["n"] == 45, d["actionSpace"]
+    names = d["actionSpace"]["names"]
+    assert names[0] == "red 2" and names[33] == "blue 12" and names[44] == "pass", names[:3]
+    assert "QWIXX" in d["render"] and "your sheet" in d["render"], d["render"][:80]
+    sid = d["sid"]
+    print("ok  env/new Qwixx: 45 self-named actions, ansi sheet rendered")
+
+    # a masked env publishes its legal actions so the UI can grey out the rest
+    legal = d["legalActions"]
+    assert 44 in legal and 0 < len(legal) < 45, legal        # pass is always there
+    assert all(names[i].split()[0] in ("red", "yellow", "green", "blue", "pass")
+               for i in legal), [names[i] for i in legal]
+    print("ok  env/new Qwixx: legalActions published (%d of 45 open)" % len(legal))
+
+    # an illegal but in-range action is a no-op, not a silent penalty
+    bad = next(i for i in range(45) if i not in legal)
+    code, e = post(c, "/api/env/%s/step" % sid, {"action": bad})
+    # the step is counted (it burns time-limit budget) but the sheet is not touched
+    assert code == 200 and e["steps"] == 1 and e["reward"] == 0, e
+    assert e["render"] == d["render"] and e["legalActions"] == legal, "state must be unchanged"
+    print("ok  env/step Qwixx: illegal cross '%s' left the game untouched" % names[bad])
+
+    # "policy: random" goes through the env's action mask, so it plays
+    # legal Qwixx rather than bouncing off rejected clicks
+    guard = 0
+    while not d["done"] and guard < 300:
+        code, d = post(c, "/api/env/%s/step" % sid, {"policy": "random"})
+        assert code == 200, d
+        guard += 1
+    assert d["done"] and d["terminated"] and not d["truncated"], d
+    assert "GAME OVER" in d["render"], d["render"][-200:]
+    print("ok  env/step Qwixx: random policy played a full game in %d steps (return %s)"
+          % (d["steps"], d["total"]))
+
+    code, d = post(c, "/api/env/%s/reset" % sid, {"seed": 5})
+    assert code == 200 and d["steps"] == 0 and d["done"] is False, d
+    code, d = post(c, "/api/env/%s/step" % sid, {"action": 45})
+    assert code == 400, d
+    print("ok  env/reset Qwixx + out-of-range action refused")
+
     # ---- non-playable envs are refused ----
     code, d = post(c, "/api/env/new", {"envId": "Ant-v5"})
     assert code == 400 and "not playable" in d["error"], d
@@ -57,7 +100,9 @@ def main():
 
     # ---- registry advertises what is playable ----
     d = c.get("/api/gym/envs").get_json()
-    assert d["playable_namespaces"] == ["classic_control", "toy_text"], d
+    assert d["playable_namespaces"] == ["classic_control", "toy_text", "strategy_lab"], d
+    local = next((g for g in d["groups"] if g["namespace"] == "strategy_lab"), None)
+    assert local and "strategy_lab/Qwixx-v0" in local["envs"], d["groups"]
     assert d["open_spiel"]["available"] is True, d["open_spiel"]
     assert "skat" in d["open_spiel"]["games"] and "chess" in d["open_spiel"]["games"]
     print("ok  /api/gym/envs: playable namespaces + pyspiel available (%d games)"
@@ -140,6 +185,110 @@ def main():
     code, d = post(c, "/api/spiel/new", {"game": "no_such_game"})
     assert code == 400, d
     print("ok  spiel/new refuses unknown game")
+
+    # ---- cardView: doppelkopf table view ----
+    import time
+    from envs import SPIEL_SESSIONS
+
+    code, d = post(c, "/api/spiel/new", {"game": "python_doppelkopf", "seed": 7})
+    assert code == 200, d
+    cv = d["cardView"]
+    assert cv["kind"] == "doppelkopf" and cv["players"] == 4, cv
+    assert cv["phase"] == "play" and cv["status"], cv
+    assert cv["handSizes"] == [12, 12, 12, 12], cv["handSizes"]
+    assert len(cv["hand"]) == 12, len(cv["hand"])
+    for h in cv["hand"]:
+        assert h["rank"] and 0 <= h["suit"] <= 3 and isinstance(h["points"], int), h
+    legal_cards = [h for h in cv["hand"] if isinstance(h["a"], int)]
+    assert legal_cards, "expected at least one legal card with an int 'a'"
+    assert len(cv["seatNames"]) == 4 and cv["seatNames"][cv["humanSeat"]] == "You"
+    sid = d["sid"]
+    print("ok  cardView doppelkopf: kind/players/phase, 12-card hand, %d legal"
+          % len(legal_cards))
+
+    # bots attached (3 non-human seats) - checkpoints are committed
+    bots = SPIEL_SESSIONS[sid].get("bots")
+    if bots:
+        assert len(bots) == 3, bots
+        print("ok  doppelkopf bots: 3 PIMC master bots attached")
+    else:
+        print("SKIP doppelkopf bots: checkpoint failed to load (random seats)")
+
+    # play a legal card via the API; time this /act (human + bots advance)
+    t0 = time.time()
+    code, d = post(c, "/api/spiel/%s/act" % sid, {"action": legal_cards[0]["a"]})
+    dt = time.time() - t0
+    assert code == 200, d
+    print("ok  doppelkopf /act latency: %.3fs (human card + non-human seats)" % dt)
+    cv = d["cardView"]
+    assert cv["handSizes"][cv["humanSeat"]] < 12, cv["handSizes"]
+    for pl in cv["trick"]["plays"]:
+        assert 0 <= pl["seat"] < 4 and 0 <= pl["suit"] <= 3, pl
+    if cv["lastTrick"]:
+        assert 0 <= cv["lastTrick"]["winner"] < 4
+        for pl in cv["lastTrick"]["plays"]:
+            assert 0 <= pl["seat"] < 4 and 0 <= pl["suit"] <= 3, pl
+    print("ok  cardView doppelkopf: hand shrank, trick/lastTrick consistent")
+
+    # play to terminal on random -> result present and coherent
+    guard = 0
+    while not cv["terminal"] and guard < 300:
+        code, d = post(c, "/api/spiel/%s/act" % sid, {"policy": "random"})
+        assert code == 200, d
+        cv = d["cardView"]
+        guard += 1
+    res = cv["result"]
+    assert res is not None and len(res["returns"]) == 4, res
+    assert abs(sum(res["returns"])) < 1e-6, res["returns"]
+    assert res["re_points"] + res["kontra_points"] == 240, res
+    print("ok  cardView doppelkopf: terminal result, returns sum 0, points=240")
+
+    # ---- cardView: skat table view ----
+    code, d = post(c, "/api/spiel/new", {"game": "skat", "seed": 11})
+    assert code == 200, d
+    cv = d["cardView"]
+    assert cv["kind"] == "skat" and cv["players"] == 3, cv
+    assert cv["phase"] == "bid", cv["phase"]
+    assert cv["actions"], "expected non-card bid actions in bid phase"
+    assert len(cv["hand"]) == 10, len(cv["hand"])
+    for h in cv["hand"]:
+        assert 0 <= h["suit"] <= 3 and h["rank"], h
+    sid = d["sid"]
+    print("ok  cardView skat: kind/players, bid phase, %d actions, 10-card hand"
+          % len(cv["actions"]))
+
+    # drive through bidding/discard by choosing legal actions until play phase
+    guard = 0
+    while not cv["terminal"] and cv["phase"] != "play" and guard < 60:
+        if cv["actions"]:
+            action = cv["actions"][0]["a"]
+        else:
+            action = next(h["a"] for h in cv["hand"] if h["a"] is not None)
+        code, d = post(c, "/api/spiel/%s/act" % sid, {"action": action})
+        assert code == 200, d
+        cv = d["cardView"]
+        guard += 1
+    assert cv["terminal"] or cv["phase"] == "play", cv["phase"]
+    if not cv["terminal"] and cv["toAct"] == cv["humanSeat"]:
+        assert any(isinstance(h["a"], int) for h in cv["hand"]), cv["hand"]
+        print("ok  cardView skat: reached play phase, legal cards carry 'a'")
+    else:
+        print("ok  cardView skat: reached play phase (bots to act)")
+
+    # play to terminal -> result.returns has 3 entries
+    guard = 0
+    while not cv["terminal"] and guard < 200:
+        code, d = post(c, "/api/spiel/%s/act" % sid, {"policy": "random"})
+        assert code == 200, d
+        cv = d["cardView"]
+        guard += 1
+    assert cv["terminal"] and len(cv["result"]["returns"]) == 3, cv["result"]
+    print("ok  cardView skat: terminal result.returns has 3 entries")
+
+    # other games carry NO cardView key
+    code, d = post(c, "/api/spiel/new", {"game": "tic_tac_toe", "seed": 3})
+    assert code == 200 and "cardView" not in d, list(d)
+    print("ok  cardView absent for non-card game (tic_tac_toe)")
 
     print("\nALL PASSED")
 

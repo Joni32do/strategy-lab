@@ -647,25 +647,32 @@ code { background: var(--panel-2); padding: 1px 6px; border-radius: 6px; font-si
 }
 
 /* ===== minimal skin ===== */
-.min-home { max-width: 720px; margin: 0 auto; padding: 20px 0 60px; }
-.min-title {
-  font-size: 1.1rem; font-weight: 700; letter-spacing: .02em;
-  color: var(--muted); margin-bottom: 28px;
+.min-home { max-width: 720px; margin: 0 auto; padding: 28px 0 60px; }
+.min-logo {
+  display: flex; justify-content: center; margin-bottom: 36px;
+  color: var(--pick);
 }
-.min-genre { margin-bottom: 30px; }
+.min-genre { margin-bottom: 34px; }
 .min-genre h2 {
-  font-size: .78rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .1em; color: var(--muted); margin: 0 0 10px;
-  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  font-size: .72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .14em; color: var(--muted); margin: 0 0 12px;
+  display: flex; align-items: center; gap: 12px;
 }
-.min-list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.min-genre h2::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.min-list {
+  list-style: none; display: grid; gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
 .min-name {
   display: block; width: 100%; text-align: left;
-  padding: 9px 4px; font-size: 1.05rem; color: var(--text);
-  border-radius: 8px; transition: color .12s ease, background .12s ease;
+  padding: 11px 14px; font-size: .98rem; color: var(--text);
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: color .12s ease, border-color .12s ease, transform .12s ease;
 }
-.min-name:not(:disabled):hover { color: var(--pick); background: var(--panel-2); }
-.min-name.soon { color: var(--muted); cursor: default; opacity: .55; }
+.min-name:hover {
+  color: var(--pick); border-color: var(--pick); transform: translateY(-1px);
+}
 .min-back {
   display: inline-block; margin-bottom: 16px; padding: 6px 4px;
   color: var(--muted); font-size: .85rem;
@@ -675,3 +682,172 @@ code { background: var(--panel-2); padding: 1px 6px; border-radius: 6px; font-si
 .min-browse p.muted { margin-top: 14px; }
 
 body.skin-minimal #app { max-width: 760px; }
+
+/* ===== card table ===== */
+/* Felt table for the card games (skat/doppelkopf), rendered by
+   js/card-table.js in place of the plain <pre> obs. Everything is
+   scoped under .ct- so it never collides with the rest of the page. */
+
+.ct-host { margin: 4px 0 8px; }
+
+.ct-table {
+  position: relative;
+  min-height: 360px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(ellipse at 50% 42%, #1f6b45 0%, #17573a 52%, #0e3a26 100%);
+  box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+/* --- seats --- */
+.ct-seat { position: absolute; text-align: center; max-width: 46%; }
+.ct-south { bottom: 8px;  left: 50%; transform: translateX(-50%); }
+.ct-north { top: 10px;    left: 50%; transform: translateX(-50%); }
+.ct-west  { left: 12px;   top: 50%; transform: translateY(-50%); }
+.ct-east  { right: 12px;  top: 50%; transform: translateY(-50%); }
+/* 3-player skat: opponents ride a little higher, out of the trick's way */
+.ct-skat .ct-west { top: 34%; }
+.ct-skat .ct-east { top: 34%; }
+
+.ct-seat-label {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; margin-bottom: 6px;
+  font-size: .82rem; font-weight: 600; color: #e7efe7;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+.ct-toact .ct-seat-name { color: #ffe08a; }
+.ct-toact .ct-seat-name::after { content: " \25CF"; font-size: .6em; }
+
+.ct-badges { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.ct-badge {
+  font-size: .62rem; font-weight: 600; letter-spacing: .03em;
+  color: var(--text); background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.ct-backs { display: flex; justify-content: center; }
+.ct-back {
+  width: 26px; height: 38px; border-radius: 4px; margin-left: -16px;
+  background: repeating-linear-gradient(45deg, #5a6bd8 0 4px, #454fb0 4px 8px);
+  border: 1px solid #2a2f66;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.ct-back:first-child { margin-left: 0; }
+.ct-west .ct-backs, .ct-east .ct-backs { transform: scale(0.9); }
+
+/* --- trick area --- */
+.ct-trick { position: absolute; inset: 0; pointer-events: none; }
+.ct-slot { position: absolute; width: 58px; height: 84px; }
+.ct-slot-south { bottom: 78px; left: 50%; transform: translateX(-50%); }
+.ct-slot-north { top: 78px;    left: 50%; transform: translateX(-50%); }
+.ct-slot-west  { left: calc(50% - 96px); top: 50%; transform: translateY(-50%); }
+.ct-slot-east  { left: calc(50% + 40px); top: 50%; transform: translateY(-50%); }
+.ct-slot .ct-card { animation: ct-land 0.22s ease-out; }
+@keyframes ct-land {
+  from { transform: scale(1.2); opacity: 0.25; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* --- card face --- */
+.ct-card {
+  position: relative;
+  width: 56px; height: 82px;
+  border-radius: 7px;
+  background: #f7f5ee; color: #21242a;
+  border: 1px solid #b9b4a6;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+  display: inline-block; user-select: none; padding: 0;
+}
+.ct-card.red { color: #c2342e; }
+.ct-corner {
+  position: absolute; top: 4px; left: 5px;
+  display: flex; flex-direction: column; align-items: center;
+  font-size: .8rem; font-weight: 700; line-height: 1.02;
+}
+.ct-pip {
+  position: absolute; left: 50%; top: 52%;
+  transform: translate(-50%, -50%);
+  font-size: 1.5rem;
+}
+.ct-pts {
+  position: absolute; bottom: 3px; right: 5px;
+  font-size: .58rem; color: #9a958a; font-weight: 600;
+}
+.ct-card.trump::after {
+  content: ""; position: absolute; inset: 0; border-radius: 6px;
+  border: 2px solid #ffe08a; pointer-events: none;
+}
+.ct-card.ct-win { box-shadow: 0 0 14px 3px rgba(255, 224, 138, 0.85); }
+
+/* --- hand --- */
+.ct-hand {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 0; margin-top: 12px; min-height: 84px;
+}
+.ct-hand .ct-card {
+  margin-left: -12px; cursor: pointer;
+  transition: transform .1s ease-out;
+}
+.ct-hand .ct-card:first-child { margin-left: 0; }
+.ct-hand .ct-card:not(.disabled):hover { transform: translateY(-10px); z-index: 5; }
+.ct-hand .ct-card.disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* --- status / actions / score --- */
+.ct-status {
+  margin: 12px 0 4px; text-align: center;
+  font-size: .92rem; color: var(--text); min-height: 20px;
+}
+.ct-actions {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  margin-top: 8px;
+}
+.ct-act-btn {
+  background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 14px; font-size: .86rem; cursor: pointer;
+}
+.ct-act-btn:hover { border-color: var(--pick); color: var(--pick); }
+
+.ct-score {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  margin-top: 10px;
+}
+.ct-score-cell {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 999px; padding: 4px 12px; font-size: .82rem;
+}
+.ct-score-cell.ct-you { border-color: var(--p0); }
+.ct-score-pts { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* --- terminal result banner --- */
+.ct-result {
+  margin-top: 12px; padding: 12px 16px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.ct-result-head { font-weight: 700; margin-bottom: 8px; }
+.ct-result-pts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.ct-pill {
+  font-size: .8rem; color: var(--text);
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 3px 11px;
+}
+.ct-pill-val { border-color: var(--pick); color: var(--pick); }
+.ct-result-specials { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.ct-ret { display: flex; flex-wrap: wrap; gap: 8px; }
+.ct-ret-cell {
+  display: flex; gap: 8px; align-items: center;
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 4px 12px; font-size: .82rem;
+}
+.ct-ret-cell.ct-you { border-color: var(--p0); }
+.ct-ret-val { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+  .ct-table { min-height: 320px; }
+  .ct-seat { max-width: 42%; }
+}

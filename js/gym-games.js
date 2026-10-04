@@ -401,6 +401,114 @@
     },
   });
 
+  /* Backgammon -- perfect information, but NOT deterministic: every
+   * turn starts with a dice roll, and you must know that roll before
+   * you can even list your legal moves. The board alone is not the
+   * state you act on; the board-plus-current-dice is. Doubling cube
+   * and match score add a further layer of history this catalog only
+   * notes, since single-game play does not use them. */
+  MDP.register({
+    id: 'backgammon',
+    name: 'Backgammon',
+    icon: '\u{1F3B2}',            // game die
+    genre: 'board',
+    players: 2,
+    backend: 'open_spiel',
+    envId: 'backgammon',
+    play: { kind: 'spiel', game: 'backgammon' },
+    blurb: 'Perfect information but not deterministic: both players can always see the '
+      + 'whole board, yet every turn opens with a dice roll that you must know before '
+      + 'you can even list your legal moves - the pip count and the race-vs-contact '
+      + 'shape of the position are what strategy is actually about.',
+    history: 'the board position is Markov once you also carry the dice you must play '
+      + 'this turn - nothing before that matters. The doubling cube and the match score '
+      + '(in a multi-game match) are the exception: whether doubling is currently live, '
+      + 'who owns the cube, and the score so far all live outside the single board and '
+      + 'change what the correct move even is.',
+    defaultMdp: 'board-dice',
+    mdps: [
+      {
+        id: 'checkers-only', name: 'Checker positions only (no dice)', markov: false,
+        state: 'the 24 points plus bar and off, with each checker\'s position, but not '
+          + 'the roll you have to play',
+        actions: 'none can be legally listed - which moves exist depends entirely on '
+          + 'the dice',
+        reward: '+1/-1 (or +2/+3 for gammon/backgammon) at the end; gamma = 1',
+        note: 'looks like the state because it is everything you can see, but it is '
+          + 'useless on its own: you cannot enumerate a single legal move without '
+          + 'knowing the roll, so this is not actually Markov for the decision problem.',
+      },
+      {
+        id: 'board-dice', name: 'Board + current dice to play', markov: true,
+        state: 'checker positions (24 points, bar, off) for both sides plus the dice '
+          + 'roll you must move this turn (doubles play as four moves of that number)',
+        stateSize: 'roughly 10^20 reachable positions x 21 distinct dice rolls',
+        actions: 'legal ways to play the roll - which checkers move, including forced '
+          + 'bar re-entry and forced moves when only one die can legally be played',
+        reward: '+1 win / -1 loss, doubled for a gammon (opponent bears off none) or '
+          + 'tripled for a backgammon (opponent has checkers on the bar or in your '
+          + 'home board); gamma = 1. Live play here uses the open_spiel default '
+          + 'winloss scoring, so the returns you see are a flat +1/-1',
+        note: 'this is the state open_spiel actually operates on for a single game - '
+          + 'board plus roll is a complete, self-contained decision point.',
+      },
+      {
+        id: 'cube-match', name: 'Board + dice + doubling cube + match score', markov: true,
+        state: 'board + dice to play, plus the doubling cube value and who may double, '
+          + 'plus the running score and match length if this is one game of a match',
+        actions: 'legal checker plays, plus offering or accepting/declining a double '
+          + 'when the cube is live',
+        reward: 'match-adjusted equity rather than a flat +-1/2/3 - the same board '
+          + 'position can call for a different move near match point than early in '
+          + 'a money game',
+        note: 'the full tournament formulation. Single-game play (what this catalog '
+          + 'plays live) does not need the cube or score, but any serious backgammon '
+          + 'engine tracks this - the cube alone roughly doubles the size of the '
+          + 'decision problem.',
+      },
+    ],
+    rulebook: {
+      summary: 'A two-player race game for 15 checkers each, moved by the roll of two '
+        + 'dice; first to bear off all 15 wins.',
+      steps: [
+        { title: 'The board', text: 'A track of 24 points grouped into four quadrants of '
+          + '6. Each side starts with 15 checkers spread over fixed starting points and '
+          + 'moves them in opposite directions around the board toward their own home '
+          + 'board (the last 6 points).' },
+        { title: 'Rolling and moving', text: 'Each turn you roll two dice and move '
+          + 'checkers that many points in your direction - one checker per die, or one '
+          + 'checker the sum of both, as long as every intermediate point is legal to '
+          + 'land on. Rolling doubles (e.g. 5-5) gives four moves of that number instead '
+          + 'of two.' },
+        { title: 'Landing rules', text: 'You may land on an empty point, a point holding '
+          + 'your own checkers, or a point with exactly one enemy checker (a "blot") - '
+          + 'landing there hits it. You may never land on a point with two or more enemy '
+          + 'checkers.' },
+        { title: 'Hitting and the bar', text: 'Hitting a blot sends it to the bar. A '
+          + 'checker on the bar must re-enter in the opponent\'s home board before any '
+          + 'other checker may move, and re-entry is blocked on points the opponent '
+          + 'holds with two or more checkers.' },
+        { title: 'Bearing off', text: 'Once all 15 of your checkers are in your home '
+          + 'board, you may start bearing them off - removing a checker whose point '
+          + 'matches the die exactly, or a lower point if no checker sits on the exact '
+          + 'number and the higher points are empty. First to bear off all 15 wins.' },
+        { title: 'Scoring', text: 'A normal win scores 1 point. If the loser has borne '
+          + 'off no checkers it is a gammon (2 points); if the loser still has a checker '
+          + 'on the bar or in the winner\'s home board it is a backgammon (3 points).' },
+      ],
+      additional: [
+        {
+          title: 'The doubling cube',
+          text: 'Money and match play add a cube marked 2, 4, 8... Either player, before '
+            + 'rolling on their turn, may propose doubling the stake; the opponent must '
+            + 'accept (and take control of the cube for the next double) or resign the '
+            + 'game at the current value. This catalog\'s live play is a single game and '
+            + 'does not use the cube - see the board-dice MDP above.',
+        },
+      ],
+    },
+  });
+
   /* FrozenLake — a tiny gridworld, but "tiny" hides a choice: with a
    * known map the cell index alone is Markov (the slipperiness only
    * makes the transition stochastic, not the state incomplete). The
@@ -451,6 +559,114 @@
           + 'into a belief-ish state.',
       },
     ],
+  });
+
+  /* Qwixx — the one gym entry that is OURS: server/qwixx_env.py
+   * registers it into the same Gymnasium registry as the vendored
+   * submodule (namespace "strategy_lab"), so it plays through the
+   * normal /api/env path. The interesting MDP question here is not
+   * hidden information (everyone's sheet is face up) but WHICH part of
+   * a face-up sheet you keep: a row's cross COUNT scores the game, but
+   * only the position of your rightmost cross says what is still legal. */
+  MDP.register({
+    id: 'qwixx',
+    name: 'Qwixx',
+    icon: '\u{270F}\u{FE0F}',     // pencil - it is a roll-and-write
+    genre: 'dice',
+    players: 4,
+    backend: 'gymnasium',
+    envId: 'strategy_lab/Qwixx-v0',
+    play: { kind: 'gym', envId: 'strategy_lab/Qwixx-v0' },
+    blurb: 'A roll-and-write where everybody plays every roll: the two white dice are '
+      + 'offered to all four players at once, and only the active player gets the second, '
+      + 'better choice. Crosses may only ever move right, so every mark you take spends '
+      + 'the numbers you skipped over - the whole game is deciding what a cross is worth.',
+    history: 'nothing is hidden and nothing is forgotten - the sheet IS the history, which '
+      + 'is why your own row is Markov. The catch is which summary of it you keep: the '
+      + 'cross COUNT is what scores, but only the POSITION of your rightmost cross says '
+      + 'what is still legal, and only the other three sheets say how much game is left '
+      + 'before two rows lock and it all stops.',
+    defaultMdp: 'table',
+    mdps: [
+      {
+        id: 'counts', name: 'Per-row cross counts + dice', markov: false,
+        state: 'how many crosses you have in each of the four rows, your penalties, which '
+          + 'rows are locked, and the six dice',
+        stateSize: '19 numbers - the most compact honest-looking encoding',
+        actions: 'one cross (row, number) or pass - 45 in all',
+        reward: 'the change in your own score each step, so the episode return is your '
+          + 'final Qwixx score',
+        note: 'the counts are exactly what the scoring table eats, so this looks '
+          + 'sufficient - and it is not. Five crosses in red can mean "2 3 4 5 6" (nine '
+          + 'numbers still open) or "2 3 4 5 11" (only the 12 left). Same count, same '
+          + 'score so far, completely different legal moves. Everything in Qwixx is '
+          + 'about the frontier, and a count throws the frontier away.',
+      },
+      {
+        id: 'sheet', name: 'Your whole sheet + dice + phase', markov: 'approx',
+        state: 'all 44 boxes of your own sheet, your penalties, the locked rows, the six '
+          + 'dice, whose turn it is and whether this is the white-sum or the colour step',
+        stateSize: '59 numbers; a single sheet has about 2^44 raw configurations, far '
+          + 'fewer reachable since crosses only move right (12^4 frontiers x subsets)',
+        actions: 'the legal crosses for this roll, or pass - the env masks the rest',
+        reward: 'the change in your own score each step',
+        note: 'Markov for your own scoring and for every legality question, and this is '
+          + 'the formulation most human players actually use. What it cannot see is how '
+          + 'close the other three are: whether the row you are saving is about to be '
+          + 'locked out from under you, and how many turns are left at all.',
+      },
+      {
+        id: 'table', name: 'All four sheets + dice + phase', markov: true,
+        state: 'every player\'s sheet and penalty count, the locked rows, the six dice, '
+          + 'the active seat and the phase',
+        stateSize: '194 numbers',
+        actions: 'the legal crosses for this roll, or pass (45-way, masked)',
+        reward: 'the change in your own score, or - switch reward_mode to "margin" - your '
+          + 'final score minus the best opponent\'s, which is what winning actually means',
+        note: 'fully Markov: dice are rolled fresh each turn, so the four sheets plus the '
+          + 'roll determine everything that can still happen, including when the game '
+          + 'ends. It also makes the real decision expressible - racing an opponent to a '
+          + 'lock is a different game from maximising your own sheet.',
+      },
+    ],
+    rulebook: {
+      summary: 'Four players, six dice, one sheet each with a red, yellow, green and blue '
+        + 'row. You hold seat 0; the other three are scripted bots. Everybody marks on '
+        + 'every roll, so there is no waiting.',
+      steps: [
+        { title: 'The sheet', text: 'Red and yellow run 2 to 12 from left to right; green '
+          + 'and blue run 12 down to 2. Crosses in a row must always be to the RIGHT of '
+          + 'your rightmost cross in that row - numbers you skip past are gone for good.' },
+        { title: 'The roll', text: 'The active player rolls two white dice and one die per '
+          + 'colour. First, EVERY player may cross out the sum of the two white dice in '
+          + 'any one row. Then the active player may additionally combine one white die '
+          + 'with one coloured die and cross that number in the matching colour row.' },
+        { title: 'Penalties', text: 'Nobody is ever forced to mark - but an active player '
+          + 'who takes neither the white sum nor a colour combination must cross a penalty '
+          + 'box, worth -5. Non-active players pass for free. Four penalties end the game.' },
+        { title: 'Locking a row', text: 'To cross a row\'s rightmost number (red/yellow 12, '
+          + 'green/blue 2) you must already hold at least five crosses in that row. Doing '
+          + 'so also crosses the lock, which counts as one further cross, and closes the '
+          + 'row for everybody - its die leaves the game. Because the white sum is offered '
+          + 'to everyone at once, several players can lock the same row on the same roll, '
+          + 'but each still needs their own five crosses.' },
+        { title: 'End and scoring', text: 'The game stops the moment two rows are locked or '
+          + 'somebody marks a fourth penalty. A row with n crosses (the lock counting as '
+          + 'one) scores n*(n+1)/2: 1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66, 78. Subtract '
+          + '5 per penalty. Highest total wins.' },
+      ],
+      additional: [
+        {
+          title: 'Why the crosses are worth n*(n+1)/2',
+          text: 'The triangular payout is the whole tension. The first cross in a row is '
+            + 'worth 1 point, the tenth is worth 10 - so crosses are only cheap early, and '
+            + 'a row you have invested in pays more for every further mark. That is what '
+            + 'makes skipping four numbers to grab an 11 a real decision rather than an '
+            + 'obvious one, and it is why the bots here are defined purely by how many '
+            + 'numbers they will skip (2, 1 and 3 respectively).',
+        },
+      ],
+    },
   });
 
   /* CartPole — the fruit fly of RL. The full 4-dim state is Markov;

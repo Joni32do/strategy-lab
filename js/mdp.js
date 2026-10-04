@@ -34,6 +34,7 @@ window.MDP = (function () {
     { id: 'classic', name: 'Classic & solved', desc: 'the playable card-stack lab games' },
     { id: 'board', name: 'Board', desc: 'perfect information, big trees' },
     { id: 'card', name: 'Card', desc: 'imperfect information — memory is strategy' },
+    { id: 'dice', name: 'Dice & roll-and-write', desc: 'the luck is dealt to everyone — the policy is what you do with it' },
     { id: 'atari', name: 'Atari / arcade', desc: 'Gymnasium ALE environments' },
     { id: 'control', name: 'Classic control', desc: 'the Gymnasium starter set' },
   ];

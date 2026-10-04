@@ -12,8 +12,10 @@ from the same state) - that is the policy-exploration hook.
 Gymnasium envs are playable for the namespaces that work out of the
 box with the vendored submodule (classic_control, toy_text); anything
 needing extra native deps (box2d, mujoco, ALE) is reported as
-browse-only. OpenSpiel comes from the PyPI wheel (pyspiel), pinned to
-the same version as the vendored ./open_spiel submodule.
+browse-only. The lab's own envs (server/qwixx_env.py) register into the
+same registry under the "strategy_lab" namespace and are playable too.
+OpenSpiel comes from the PyPI wheel (pyspiel), pinned to the same
+version as the vendored ./open_spiel submodule.
 
 Run tests: uv run python server/test_envs.py
 """
@@ -23,8 +25,11 @@ import random
 
 from flask import jsonify, request
 
+from spiel_views import card_view
+
 MAX_SESSIONS = 32          # per session kind; oldest is evicted
-PLAYABLE_NAMESPACES = ("classic_control", "toy_text")
+LOCAL_NAMESPACE = "strategy_lab"
+PLAYABLE_NAMESPACES = ("classic_control", "toy_text", LOCAL_NAMESPACE)
 SPIEL_MAX_GAME_LEN = 2000  # hard stop for autoplay loops
 SPIEL_LOG_CAP = 200
 
@@ -75,13 +80,30 @@ def _action_space_payload(env, env_id):
     space = env.action_space
     kind = type(space).__name__
     if kind == "Discrete":
-        return {"type": "discrete", "n": int(space.n),
-                "names": ACTION_NAMES.get(env_id)}
+        # An env may name its own actions (see qwixx_env.QwixxEnv); the
+        # table above only covers the stock Gymnasium envs.
+        names = getattr(env.unwrapped, "action_names", None) or ACTION_NAMES.get(env_id)
+        return {"type": "discrete", "n": int(space.n), "names": names}
     if kind == "Box":
         return {"type": "box",
                 "low": _to_jsonable(space.low), "high": _to_jsonable(space.high),
                 "shape": list(space.shape)}
     return {"type": kind.lower()}
+
+
+def _legal_actions(env):
+    """Indices the env says are legal right now, or None if it has no mask.
+
+    Envs with an action_mask() (see qwixx_env.QwixxEnv) get their illegal
+    buttons greyed out in the browser instead of silently doing nothing.
+    """
+    mask = getattr(env.unwrapped, "action_mask", None)
+    if not callable(mask):
+        return None
+    try:
+        return [i for i, ok in enumerate(mask()) if ok]
+    except Exception:
+        return None
 
 
 def _env_state(sess, reward=0.0, terminated=False, truncated=False):
@@ -92,7 +114,7 @@ def _env_state(sess, reward=0.0, terminated=False, truncated=False):
             render = env.render()
         except Exception:
             render = None
-    return {
+    out = {
         "sid": sess["sid"],
         "envId": sess["envId"],
         "obs": _to_jsonable(sess["obs"]),
@@ -106,23 +128,50 @@ def _env_state(sess, reward=0.0, terminated=False, truncated=False):
         "actionSpace": sess["actionSpace"],
         "obsSpace": sess["obsSpace"],
     }
+    legal = _legal_actions(env)
+    if legal is not None:
+        out["legalActions"] = legal
+    return out
+
+
+def ensure_local_envs():
+    """Import the lab's own envs so they are in the gymnasium registry.
+
+    Import-time failure is non-fatal: the stock envs keep working and the
+    local ones simply report as unknown.
+    """
+    try:
+        import qwixx_env  # noqa: F401  (registers strategy_lab/Qwixx-v0)
+    except Exception:
+        pass
 
 
 def _gym_playable(env_id):
     """Only envs from namespaces that work with the vendored submodule."""
     import gymnasium
+    ensure_local_envs()
     try:
         spec = gymnasium.spec(env_id)
     except Exception:
         return False
+    if spec.namespace in PLAYABLE_NAMESPACES:
+        return True
     ep = spec.entry_point
     return isinstance(ep, str) and any(("." + ns + ".") in ep or ep.startswith("gymnasium.envs." + ns)
                                        for ns in PLAYABLE_NAMESPACES)
 
 
 def _sample_action(env):
-    a = env.action_space.sample()
-    return a
+    """One random action - through the env's legality mask when it has one,
+    so "policy: random" on a masked env plays legal moves rather than
+    bouncing off rejected ones."""
+    mask = getattr(env.unwrapped, "action_mask", None)
+    if callable(mask):
+        try:
+            return env.action_space.sample(mask=mask())
+        except Exception:
+            pass
+    return env.action_space.sample()
 
 
 def register_env_api(app):
@@ -227,10 +276,11 @@ def register_env_api(app):
         log = []
         _spiel_resolve_chance(state, rng, log)
         sid = _new_sid("spiel")
+        human = state.current_player() if not state.is_terminal() else 0
         SPIEL_SESSIONS[sid] = {
             "sid": sid, "game": game_name, "gameObj": game, "state": state,
-            "rng": rng, "log": log,
-            "humanSeat": state.current_player() if not state.is_terminal() else 0,
+            "rng": rng, "log": log, "humanSeat": human,
+            "bots": _make_doppelkopf_bots(game_name, human, rng),
         }
         _evict(SPIEL_SESSIONS)
         return jsonify(_spiel_state(SPIEL_SESSIONS[sid]))
@@ -262,6 +312,31 @@ def register_env_api(app):
 
 
 SPIEL_SESSIONS = {}
+
+# num_worlds for the doppelkopf PIMC master bots; dropped to 8 if a
+# single /act call proves too slow on this machine.
+DOPPELKOPF_BOT_WORLDS = 12
+
+
+def _make_doppelkopf_bots(game_name, human, rng):
+    """PIMC master bots for the three non-human doppelkopf seats.
+
+    Returns {seat: bot} or None. Any import/checkpoint failure falls back
+    to no bots (random seats) -- session creation never breaks.
+    """
+    if game_name != "python_doppelkopf":
+        return None
+    try:
+        from doppelkopf import cards, search
+        net = search.resolve_net()
+        return {
+            p: search.MasterBot(p, search.PIMCAdvisor(
+                num_worlds=DOPPELKOPF_BOT_WORLDS, net=net,
+                rng=random.Random(rng.random())))
+            for p in range(cards.NUM_PLAYERS) if p != human
+        }
+    except Exception:
+        return None
 
 
 def _spiel_log(sess_or_log, player, text):
@@ -299,7 +374,15 @@ def _spiel_advance(sess):
         cur = state.current_player()
         if cur == sess["humanSeat"]:
             break
-        action = rng.choice(state.legal_actions())
+        bots = sess.get("bots")
+        action = None
+        if bots and cur in bots:
+            try:
+                action = bots[cur].step(state)
+            except Exception:
+                action = None
+        if action is None:
+            action = rng.choice(state.legal_actions())
         _spiel_log(sess, cur, state.action_to_string(cur, action))
         state.apply_action(action)
 
@@ -320,7 +403,7 @@ def _spiel_state(sess):
     if not terminal and state.current_player() == human:
         legal = [{"a": a, "s": state.action_to_string(human, a)}
                  for a in state.legal_actions()]
-    return {
+    payload = {
         "sid": sess["sid"],
         "game": sess["game"],
         "players": sess["gameObj"].num_players(),
@@ -332,3 +415,7 @@ def _spiel_state(sess):
         "returns": [round(r, 4) for r in state.returns()] if terminal else None,
         "log": sess["log"],
     }
+    cv = card_view(sess)
+    if cv is not None:
+        payload["cardView"] = cv
+    return payload

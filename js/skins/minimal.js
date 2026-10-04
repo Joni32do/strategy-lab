@@ -30,17 +30,14 @@
     // Catan: hardcoded -- it lives outside MDP.games, reached via catan.html.
     pushTo('board', { kind: 'catan', id: 'catan', label: 'Settlers of Catan' });
 
+    // Only entries with a live backend (entry.play) that aren't already
+    // shown as a card-stack game above (entry.playable) -- home lists ONLY
+    // games you can actually open and play; browse-only entries (e.g.
+    // Tetris) and the coming-soon bucket are deliberately left out.
     var mdpGames = (ctx.data && ctx.data.MDP && ctx.data.MDP.games) || [];
     mdpGames.forEach(function (entry) {
-      if (entry.playable) { return; } // already shown as a card-stack game above
+      if (!entry.play || entry.playable) { return; }
       pushTo(entry.genre, { kind: 'mdp', id: entry.id, label: entry.name });
-    });
-
-    var soon = (ctx.data && ctx.data.comingSoon) || [];
-    soon.forEach(function (item) {
-      pushTo(item.genre, {
-        kind: 'soon', id: null, label: item.name, blurb: item.blurb
-      });
     });
 
     return genres
@@ -49,13 +46,21 @@
   }
 
   function itemHTML(esc, it) {
-    if (it.kind === 'soon') {
-      return '<li><button class="min-name soon" data-kind="soon" disabled' +
-        (it.blurb ? ' title="' + esc(it.blurb) + '"' : '') + '>' +
-        esc(it.label) + '</button></li>';
-    }
     return '<li><button class="min-name" data-kind="' + esc(it.kind) + '" data-id="' +
       esc(it.id) + '">' + esc(it.label) + '</button></li>';
+  }
+
+  /* Icon-only logo: a minimal game-tree mark (root branching into two
+   * leaves) -- no wordmark. Inline SVG so the source stays ASCII. */
+  function logoHTML() {
+    return '<div class="min-logo" role="img" aria-label="Strategy Lab">' +
+      '<svg viewBox="0 0 24 24" width="48" height="48" fill="none"' +
+      ' stroke="currentColor" stroke-width="1.6" stroke-linecap="round">' +
+      '<path d="M12 8.5 L6.5 15.5 M12 8.5 L17.5 15.5"/>' +
+      '<circle cx="12" cy="6.5" r="2.4"/>' +
+      '<circle cx="5.5" cy="17.5" r="2.4"/>' +
+      '<circle cx="18.5" cy="17.5" r="2.4"/>' +
+      '</svg></div>';
   }
 
   function renderHome(ctx) {
@@ -67,8 +72,7 @@
     var esc = ctx.esc;
     var groups = buildGenres(ctx);
 
-    var html = '<div class="min-home">' +
-      '<h1 class="min-title">Strategy Lab</h1>';
+    var html = '<div class="min-home">' + logoHTML();
     groups.forEach(function (gr) {
       html += '<section class="min-genre" data-genre="' + esc(gr.id) + '">' +
         '<h2>' + esc(gr.name) + '</h2>' +

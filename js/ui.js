@@ -17,12 +17,10 @@ window.UI = (function () {
 
   const STORE_KEY = 'strategy-lab-v1';
 
-  // The two locked "coming soon" gallery cards. Moved out of the
-  // old ui.js body; exposed to skins via ctx.data.comingSoon.
-  const COMING_SOON = [
-    { icon: '🛞', name: 'The Game of Life', blurb: 'Careers, kids and a big spinner of destiny.', genre: 'classic' },
-    { icon: '🎲', name: 'Backgammon', blurb: 'The oldest race game in the world.', genre: 'board' },
-  ];
+  // Locked "coming soon" gallery cards (exposed to skins via
+  // ctx.data.comingSoon). Empty now that Game of Life (js/games/life.js)
+  // and Backgammon (open_spiel catalog entry) are both live.
+  const COMING_SOON = [];
 
   /* ---------- persistence store ---------- */
   let stacks = {};   // gameId -> [ruleId]

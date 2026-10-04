@@ -41,7 +41,7 @@ from catanatron.state_functions import (
 )
 from catanatron.models.enums import SETTLEMENT, CITY
 
-from envs import register_env_api, PLAYABLE_NAMESPACES
+from envs import register_env_api, ensure_local_envs, PLAYABLE_NAMESPACES
 from policy import (
     StrategicTradingPlayer,
     MetricWeights,
@@ -344,6 +344,7 @@ def gym_envs():
     except Exception as exc:  # gymnasium missing / broken -> service unavailable
         return jsonify({"error": f"gymnasium unavailable: {exc}"}), 503
 
+    ensure_local_envs()          # the lab's own envs list alongside the stock ones
     grouped = {}
     for spec in gymnasium.envs.registry.values():
         grouped.setdefault(_gym_group(spec), set()).add(spec.id)

@@ -175,9 +175,14 @@ window.EnvPlay = (function () {
     const a = s.data.actionSpace;
     const done = s.data.done;
     if (a.type === 'discrete') {
+      // Envs that publish a legality mask (e.g. Qwixx) get their illegal
+      // actions greyed out; envs without one keep every button live.
+      const legal = s.data.legalActions;
       for (let i = 0; i < a.n; i++) {
         const name = (a.names && a.names[i]) || ('action ' + i);
-        host.appendChild(mkBtn('move-btn', name, () => gymStep({ action: i }), { disabled: done }));
+        const illegal = !!legal && legal.indexOf(i) < 0;
+        host.appendChild(mkBtn('move-btn', name, () => gymStep({ action: i }),
+          { disabled: done || illegal, title: illegal ? 'not legal in this position' : null }));
       }
     } else if (a.type === 'box') {
       [['low', 'low'], ['zero', 'zero'], ['high', 'high']].forEach(([key, label]) => {
@@ -306,8 +311,10 @@ window.EnvPlay = (function () {
       '<div class="mode-note">' + head + '</div>' +
       (hasOpts ? '<div class="spiel-options" id="spiel-options"></div>' : '') +
       (d.terminal ? spielReturnsHTML(d) : '') +
-      '<pre class="env-render">' + esc(d.obs || '') + '</pre>' +
-      (d.terminal ? '' : '<div class="legal-moves" id="spiel-legal"></div>') +
+      (d.cardView
+        ? '<div class="ct-host" id="spiel-cardtable"></div>'
+        : '<pre class="env-render">' + esc(d.obs || '') + '</pre>' +
+          (d.terminal ? '' : '<div class="legal-moves" id="spiel-legal"></div>')) +
       '<div class="play-actions" id="spiel-controls"></div>' +
       '<h3>Move log</h3>' +
       '<div class="log-panel" id="spiel-log">' + spielLogHTML(d.log, d.humanSeat) + '</div>';
@@ -315,6 +322,12 @@ window.EnvPlay = (function () {
     fillSpielOptions();
     fillSpielLegal();
     fillSpielControls();
+    // Card games (skat/doppelkopf) get a felt table instead of the <pre>
+    // obs + legal buttons; delegate to CardTable, which acts via spielAct.
+    if (d.cardView && window.CardTable) {
+      const hostEl = $('#spiel-cardtable');
+      if (hostEl) window.CardTable.render(hostEl, d, { act: (body) => spielAct(body) });
+    }
   }
 
   /* Rule toggles (catalog play.options). Flipping one deals a fresh game

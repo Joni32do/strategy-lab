@@ -6,6 +6,7 @@ require('../js/games/tictactoe.js');
 require('../js/games/snakes.js');
 require('../js/games/maedn.js');
 require('../js/games/monopoly.js');
+require('../js/games/life.js');
 // Catan is now engine-backed (catanatron); tested in server/test_policy.py.
 
 const SL = window.StrategyLab;
@@ -73,6 +74,24 @@ check('Monopoly games terminate', r.timeouts === 0, fmt(r));
 r = run('monopoly', ['buy-all', 'builder', 'pay-jail'], [], 200);
 check('Monopoly buy-it-all beats random', r.u > r.b, fmt(r));
 
+/* ---- The Game of Life ---- */
+const LIFE_STRONG = ['college', 'big-salary', 'insured', 'high-roller'];
+r = run('life', LIFE_STRONG, [], 400);
+const lifeWr = (100 * r.u / (r.u + r.b)).toFixed(1);
+check('Life strong stack beats empty', r.u > r.b, fmt(r));
+check('Life strong stack wins clearly (>60%)', r.u > 240, fmt(r));
+check('Life games terminate', r.timeouts === 0, fmt(r));
+check('Life games are decided (few draws)', r.d < 30, fmt(r));
+check('Life games are short (avgTurns < 200)', r.avg < 200, fmt(r));
+
+const l1 = run('life', LIFE_STRONG, [], 150, 4321);
+const l2 = run('life', LIFE_STRONG, [], 150, 4321);
+check('Life is deterministic for a fixed seed', l1.u === l2.u && l1.b === l2.b, fmt(l1));
+
+r = run('life', ['college', 'big-salary', 'insured'], ['steady', 'safe'], 400);
+check('Life climber beats steady no-college', r.u > r.b, fmt(r));
+console.log(`     Life strong-vs-empty winrate: ${lifeWr}% (${fmt(run('life', LIFE_STRONG, [], 400))})`);
+
 /* ---- replay determinism & consistency with match results ---- */
 const g = SL.getGame('maedn');
 const sim = SL.simulateMatch(g, ['front'], ['hunt', 'enter', 'front'], 20, 999);
@@ -88,7 +107,7 @@ check('replays reproduce match games exactly', consistent);
 check('replays are deterministic', deterministic);
 
 /* ---- every game state survives JSON cloning + captions exist ---- */
-for (const id of ['tictactoe', 'snakes', 'maedn', 'monopoly']) {
+for (const id of ['tictactoe', 'snakes', 'maedn', 'monopoly', 'life']) {
   const gm = SL.getGame(id);
   const rep = SL.replayGame(gm, gm.rules.map(x => x.id), gm.botPresets.at(-1).ruleIds, 1, 4242);
   const capsOk = rep.replay.slice(1).every(f => typeof f.caption === 'string' && f.caption.length > 0);
@@ -194,6 +213,42 @@ if (dk) {
     !!rb && (rb.additional || []).length === 2);
   check('  doppelkopf rulebook items have title + text',
     !!rb && [...(rb.steps || []), ...(rb.additional || [])].every(s => s.title && s.text));
+}
+
+/* ---- Qwixx: the lab's own gym env (server/qwixx_env.py) ---- */
+const qx = MDP.get('qwixx');
+check("MDP.get('qwixx') returns an entry", !!qx);
+if (qx) {
+  check('  qwixx is a playable gym env in the strategy_lab namespace',
+    qx.play && qx.play.kind === 'gym' && qx.play.envId === 'strategy_lab/Qwixx-v0'
+    && qx.envId === qx.play.envId, `envId=${qx.play && qx.play.envId}`);
+  check('  qwixx is a 4-player gymnasium entry in the dice genre',
+    qx.players === 4 && qx.backend === 'gymnasium' && qx.genre === 'dice');
+  check('  qwixx genre is a known MDP.genres id',
+    MDP.genres.some(g => g.id === qx.genre), `genre=${qx.genre}`);
+
+  const ids = (qx.mdps || []).map(v => v.id);
+  check('  qwixx offers counts / sheet / table state spaces',
+    ids.join(',') === 'counts,sheet,table', `ids=${ids.join(',')}`);
+  check('  qwixx defaultMdp is the fully Markov one', qx.defaultMdp === 'table');
+  const markov = (qx.mdps || []).map(v => v.markov);
+  check('  qwixx grades them not-Markov / approx / Markov',
+    markov.length === 3 && markov[0] === false && markov[1] === 'approx' && markov[2] === true,
+    `markov=${markov.join(',')}`);
+  check('  qwixx variants all carry state/actions/reward',
+    (qx.mdps || []).every(v => v.state && v.actions && v.reward));
+
+  const qrb = qx.rulebook;
+  check('  qwixx ships a rulebook with >= 5 steps', !!qrb && (qrb.steps || []).length >= 5);
+  check('  qwixx rulebook items have title + text',
+    !!qrb && [...(qrb.steps || []), ...(qrb.additional || [])].every(s => s.title && s.text));
+  const rules = JSON.stringify(qrb);
+  check('  qwixx rulebook states the five-cross lock gate and the triangular payout',
+    /at least five crosses/i.test(rules) && /n\*\(n\+1\)\/2/.test(rules));
+
+  const html = MDP.panelHTML(qx, MDP.selectedMdp('qwixx'), { open: true });
+  check('MDP.panelHTML(qwixx) renders choices + the not-Markov badge',
+    html.includes('mdp-choice') && html.includes('not Markov'));
 }
 
 const isPerm = p => Array.isArray(p) && p.length === 9 &&

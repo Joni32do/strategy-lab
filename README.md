@@ -187,6 +187,22 @@ server/envs.py):
   vector observations get labeled bars), or flip **policy: random** and watch a random
   policy drive from the same state -- the policy-exploration hook. Envs needing extra
   native deps (box2d, mujoco, ALE) stay browse-only.
+- **Qwixx** (`strategy_lab/Qwixx-v0`) is our own Gymnasium env, `server/qwixx_env.py`,
+  registered into the same registry under the `strategy_lab` namespace so it plays
+  through that exact path with no special cases. Four players, published Gamewright
+  rules (right-of-your-last-cross, the five-cross gate on the 12/2, the lock's bonus
+  cross and its simultaneity on one white sum, -5 penalties, two locks or a fourth
+  penalty ends it); you hold seat 0 and the other three are scripted bots defined
+  purely by how many numbers they will skip for a cross. Actions are `Discrete(45)`
+  -- 44 (row, number) crosses plus pass -- taken one mark per step, so an active
+  player's turn is a white-sum step and then a colour step; phases where you have no
+  legal cross are skipped, so every observation is a real decision. The env publishes
+  an `action_mask()`, which the gym template now uses in two places: `policy: random`
+  samples through it (so random play is *legal* Qwixx), and the browser greys out the
+  illegal buttons. `obs_mode` switches between the three state spaces of its catalog
+  panel (`counts` 19 / `sheet` 59 / `table` 194) and `reward_mode` between your own
+  score and your margin over the best opponent. Rules covered by
+  `server/test_qwixx.py`.
 - **OpenSpiel** (`POST /api/spiel/new|act`): **skat**, **chess** and **doppelkopf**
   run on the real pyspiel engine (the PyPI wheel `open-spiel==1.6.15`, pinned to the
   same version as the vendored `open_spiel/` submodule). Doppelkopf is our own game,
@@ -209,7 +225,7 @@ js/engine.js             policy evaluation + match simulation (game-agnostic, DO
 js/games/*.js            one self-registering file per card-stack game
 js/play.js               play mode: hand-played sessions, both lenses, pure D4 symmetry helpers
 js/mdp.js                the MDP registry: schema, Markov flags, the collapsed/changeable panel
-js/gym-games.js          catalog entries: tictactoe, chess, tetris, skat, doppelkopf, frozenlake, cartpole (+ rulebooks)
+js/gym-games.js          catalog entries: tictactoe, chess, tetris, skat, doppelkopf, backgammon, qwixx, frozenlake, cartpole (+ rulebooks)
 doppelkopf/              our own OpenSpiel game (python_doppelkopf) + bots, search, tests
 js/env-play.js           live play panel: gym envs + open_spiel seats vs random bots
 js/ui.js                 home gallery, lab, charts, replay viewer, persistence
@@ -223,7 +239,9 @@ server/policy.py         the position metric + non-linear trade coefficient + Pl
 server/test_policy.py    metric symmetry, leader-veto, real-game trade tests
 server/test_gym_api.py   Gymnasium registry API tests
 server/envs.py           play sessions: /api/env/* (gymnasium) + /api/spiel/* (open_spiel)
-server/test_envs.py      real engine round-trips: FrozenLake, CartPole, skat, chess
+server/qwixx_env.py      our own Gymnasium env: 4-player Qwixx vs scripted bots
+server/test_qwixx.py     Qwixx rules: locks, the five-cross gate, penalties, whole episodes
+server/test_envs.py      real engine round-trips: FrozenLake, CartPole, Qwixx, skat, chess
 tools/                   board-geometry generator (needs the cloned catanatron repo)
 catanatron/              git submodule (bcollazo/catanatron) — the engine, installed
                          editable; drives all Catan rules
