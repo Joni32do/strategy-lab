@@ -1,0 +1,89 @@
+/* Design tokens. The default skin is "lab": a calm night-blue lab bench
+   with bright chapter colors. Other skins (css/skins.css) override these
+   variables under [data-skin="..."]. Views and pages only use tokens. */
+
+@font-face { font-family: "Bricolage"; src: url("../vendor/fonts/bricolage.woff2") format("woff2"); font-weight: 200 800; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("../vendor/fonts/inter.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("../vendor/fonts/inter-italic.woff2") format("woff2"); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("../vendor/fonts/jetbrains-mono.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
+@font-face { font-family: "Caveat"; src: url("../vendor/fonts/caveat.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+
+:root {
+  color-scheme: dark;
+
+  /* surfaces */
+  --bg: #0c0f1f;
+  --bg-glow-1: rgba(124, 140, 255, 0.16);
+  --bg-glow-2: rgba(45, 212, 191, 0.08);
+  --surface: #151a33;
+  --surface-2: #1b2142;
+  --surface-3: #242b54;
+  --line: #29315d;
+  --line-2: #3a4479;
+  --scrim: rgba(6, 8, 20, 0.66);
+
+  /* text */
+  --text: #eef0ff;
+  --text-2: #bcc1e6;
+  --muted: #868cb6;
+
+  /* intent */
+  --accent: #7c8cff;
+  --accent-ink: #0c0f1f;
+  --accent-soft: rgba(124, 140, 255, 0.16);
+  --good: #4ade80;
+  --bad: #fb7185;
+  --warn: #fbbf24;
+  --star: #fcd34d;
+
+  /* chapter colors */
+  --c-amber: #f6b445;
+  --c-teal: #2dd4bf;
+  --c-orange: #fb8c4a;
+  --c-violet: #a78bfa;
+  --c-rose: #fb7185;
+  --c-lime: #a3e635;
+  --c-sky: #38bdf8;
+  --c-slate: #94a3b8;
+
+  /* seats: you are usually p0 */
+  --p0: #38bdf8;
+  --p1: #fb7185;
+  --p2: #a3e635;
+  --p3: #f6b445;
+  --p4: #a78bfa;
+  --p5: #2dd4bf;
+
+  /* boards */
+  --board: #121734;
+  --board-line: #2d3666;
+  --cell: #1a2046;
+  --cell-2: #222a58;
+  --cell-hover: #2b3570;
+  --checker-light: #c9cfe9;
+  --checker-dark: #5f6aa3;
+  --felt: #12513f;
+  --felt-2: #0e4033;
+  --card-face: #fbfaf5;
+  --card-ink: #1a1d2e;
+  --card-red: #d6304f;
+
+  /* shape */
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 22px;
+  --shadow: 0 12px 32px rgba(3, 5, 18, 0.45);
+  --shadow-sm: 0 4px 14px rgba(3, 5, 18, 0.35);
+  --ring: 0 0 0 3px rgba(124, 140, 255, 0.45);
+
+  /* type */
+  --font-display: "Bricolage", "Inter", system-ui, sans-serif;
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+  --display-weight: 750;
+
+  /* motion */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --fast: 140ms;
+  --slow: 380ms;
+}

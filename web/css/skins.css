@@ -1,0 +1,144 @@
+/* Skins: token overrides per [data-skin]. The view classes a skin swaps in
+ * live in web/js/skins/<id>.js. */
+
+/* ------------------------------------------------------------------ paper */
+[data-skin="paper"] {
+  color-scheme: light;
+  --bg: #f4efe1;
+  --bg-glow-1: rgba(47, 74, 138, 0.06);
+  --bg-glow-2: rgba(214, 48, 79, 0.04);
+  --surface: #fbf8ef;
+  --surface-2: #f3eedf;
+  --surface-3: #e9e2cf;
+  --line: #d9cfb6;
+  --line-2: #c4b791;
+  --scrim: rgba(60, 50, 30, 0.35);
+  --text: #23252f;
+  --text-2: #4b4d5c;
+  --muted: #7d7766;
+  --accent: #2f4a8a;
+  --accent-ink: #fbf8ef;
+  --accent-soft: rgba(47, 74, 138, 0.1);
+  --good: #2e7d4f;
+  --bad: #c0392b;
+  --warn: #b7791f;
+  --star: #c98a0b;
+  --p0: #2f4a8a;
+  --p1: #c0392b;
+  --p2: #2e7d4f;
+  --p3: #b7791f;
+  --p4: #7b4ca8;
+  --p5: #1f8a8a;
+  --c-amber: #c98a0b;
+  --c-teal: #1f8a8a;
+  --c-orange: #c8641e;
+  --c-violet: #7b4ca8;
+  --c-rose: #c0392b;
+  --c-lime: #5b8c1e;
+  --c-sky: #2f6fb2;
+  --c-slate: #6b7280;
+  --board: #fbf8ef;
+  --board-line: #c4b791;
+  --cell: #fbf8ef;
+  --cell-2: #f3eedf;
+  --cell-hover: #ece4cf;
+  --checker-light: #f3eedf;
+  --checker-dark: #cdbf99;
+  --shadow: 0 10px 26px rgba(80, 64, 30, 0.18);
+  --shadow-sm: 0 3px 10px rgba(80, 64, 30, 0.15);
+  --font-display: "Caveat", "Bricolage", cursive;
+  --display-weight: 600;
+}
+[data-skin="paper"] body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(47, 74, 138, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(47, 74, 138, 0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+[data-skin="paper"] h1, [data-skin="paper"] h2 { letter-spacing: 0; }
+[data-skin="paper"] h1 { font-size: clamp(36px, 5vw, 60px); }
+[data-skin="paper"] .status-line { font-size: clamp(24px, 3vw, 32px); }
+[data-skin="paper"] .grid-board.sketch.style-board { background: transparent; gap: 0; padding: 0; }
+[data-skin="paper"] .grid-board.sketch.style-board .cell { background: transparent; border-radius: 0; }
+[data-skin="paper"] .grid-layer .pen { fill: none; stroke: #23252f; stroke-width: 0.55; stroke-linecap: round; }
+[data-skin="paper"] .piece .stroke { stroke-width: 9; }
+[data-skin="paper"] .card, [data-skin="paper"] .chapter, [data-skin="paper"] .tile, [data-skin="paper"] .board-wrap { box-shadow: 2px 3px 0 var(--line); }
+[data-skin="paper"] .tile:hover { box-shadow: 4px 5px 0 var(--line-2); }
+[data-skin="paper"] .grid-board.style-holes { background: linear-gradient(180deg, #3e5fb8, #2f4a8a); }
+[data-skin="paper"] .grid-board.style-holes .cell { background: var(--bg); }
+[data-skin="paper"] .accent-text { background: none; color: var(--p1); -webkit-text-fill-color: currentColor; }
+[data-skin="paper"] .stick { background: linear-gradient(180deg, #c98a0b, #8a5c00); }
+[data-skin="paper"] .felt { background: radial-gradient(ellipse at center, #2e7d4f, #22603c); }
+[data-skin="paper"] .ov.tone-best { color: #fff; }
+[data-skin="paper"] .splitbar span { color: #fff; }
+
+/* ---------------------------------------------------------------- minimal */
+[data-skin="minimal"] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --bg-glow-1: transparent;
+  --bg-glow-2: transparent;
+  --surface: #ffffff;
+  --surface-2: #f5f5f5;
+  --surface-3: #ebebeb;
+  --line: #e2e2e2;
+  --line-2: #c9c9c9;
+  --scrim: rgba(0, 0, 0, 0.25);
+  --text: #111111;
+  --text-2: #3d3d3d;
+  --muted: #8a8a8a;
+  --accent: #111111;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(0, 0, 0, 0.05);
+  --good: #1a7f37;
+  --bad: #cf222e;
+  --warn: #9a6700;
+  --star: #111111;
+  --p0: #0969da;
+  --p1: #cf222e;
+  --p2: #1a7f37;
+  --p3: #9a6700;
+  --p4: #8250df;
+  --p5: #0a7d7d;
+  --c-amber: #111; --c-teal: #111; --c-orange: #111; --c-violet: #111;
+  --c-rose: #111; --c-lime: #111; --c-sky: #111; --c-slate: #111;
+  --board: #fff;
+  --board-line: #111;
+  --cell: #ffffff;
+  --cell-2: #fafafa;
+  --cell-hover: #f0f0f0;
+  --checker-light: #ffffff;
+  --checker-dark: #e6e6e6;
+  --radius-sm: 2px;
+  --radius: 4px;
+  --radius-lg: 6px;
+  --shadow: none;
+  --shadow-sm: none;
+  --font-display: "JetBrains Mono", ui-monospace, monospace;
+  --font-ui: "JetBrains Mono", ui-monospace, monospace;
+  --display-weight: 700;
+}
+[data-skin="minimal"] body { font-size: 14px; }
+[data-skin="minimal"] .hero, [data-skin="minimal"] .chapter { background: var(--surface); }
+[data-skin="minimal"] .chapter::before { display: none; }
+[data-skin="minimal"] .hero-art, [data-skin="minimal"] .hero-sub, [data-skin="minimal"] .chapter-intro, [data-skin="minimal"] .tile-tag, [data-skin="minimal"] .family-blurb { display: none; }
+[data-skin="minimal"] .tile-icon, [data-skin="minimal"] .chapter-badge { display: none; }
+[data-skin="minimal"] .tiles { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+[data-skin="minimal"] .tile { padding: 10px 12px; }
+[data-skin="minimal"] .tile:hover { box-shadow: none; transform: none; text-decoration: underline; }
+[data-skin="minimal"] .accent-text { background: none; color: var(--text); -webkit-text-fill-color: currentColor; text-decoration: underline; }
+[data-skin="minimal"] .board-wrap { background: var(--surface); }
+[data-skin="minimal"] .cell.ascii { font: 700 clamp(16px, 3vw, 30px) var(--font-mono); }
+[data-skin="minimal"] .grid-board.style-board { background: var(--text); }
+[data-skin="minimal"] .grid-board.style-holes { background: var(--text); }
+[data-skin="minimal"] .grid-board.style-holes .cell { box-shadow: none; }
+[data-skin="minimal"] .die-plain { padding: 2px 4px; }
+[data-skin="minimal"] .die-plain.actionable { text-decoration: underline; }
+[data-skin="minimal"] .stick { background: var(--text); box-shadow: none; }
+[data-skin="minimal"] .stick::before { background: var(--text); }
+[data-skin="minimal"] .ov.tone-best { background: var(--text); color: var(--bg); }
+[data-skin="minimal"] .splitbar span { color: #fff; }
+[data-skin="minimal"] .felt { background: #f5f5f5; box-shadow: inset 0 0 0 2px #111; border-radius: 8px; }
+[data-skin="minimal"] .seat-name { background: #fff; color: #111; }
+[data-skin="minimal"] .last-trick { color: #111; }

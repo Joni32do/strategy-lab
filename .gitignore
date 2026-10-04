@@ -13,3 +13,8 @@ rust_cli_implementation/catan-server/.venv/
 # Editor / OS cruft
 *.swp
 .DS_Store
+
+# Strategy Lab runtime data and generated docs
+data/
+docs/_build/
+docs/generated/

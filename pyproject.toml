@@ -17,6 +17,18 @@ dependencies = [
 catanatron = { path = "catanatron", editable = true }
 gymnasium = { path = "Gymnasium", editable = true }
 
+[dependency-groups]
+dev = [
+    "furo>=2025.12.19",
+    "myst-parser>=5.1.0",
+    "pytest>=9.1.1",
+    "sphinx>=9.0.4",
+]
+
 # strategy-lab itself is an application, not a library to build/install.
 [tool.uv]
 package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

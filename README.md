@@ -1,303 +1,67 @@
 # Strategy Lab
 
-**Don't play the game. Solve it.**
+**Play a game. Then find its best strategy.**
 
-A small web app where you don't play classic board games move by move — instead you
-**design the strategy** that plays them. Build a policy out of simple rule cards, pick a
-bot opponent, simulate **100 games**, and read the statistics. Whoever's policy wins more
-games wins the match.
-
-The point: discover for yourself *how much strategy a game actually has*. For some games
-there are predefined games, e.g. for Tic-Tac-Toe optimal strategies exist. The way a strategy is
-defined is non-trivial for the most cases.
-
-*Still under activ developpment.*
-
-## Available Games
-
-- **Tic-Tac-Toe** — fully solved. With the right card order you find the deterministic
-  optimal policy: 100 draws against perfect play, and nothing can do better.
-- **Snakes & Ladders** *(pick-a-die variant)* — almost pure luck. Even perfect choices
-  only nudge the odds. Realizing that is the insight.
-- **Mensch ärgere dich nicht** — the interesting middle ground: dice keep it noisy, but
-  priorities (capture, enter, stay out of reach) shift the odds dramatically.
-- **Monopoly** — the dice turns run automatically; your policy answers the three
-  questions that matter: buy it? build on it? pay your way out of jail? Simplified:
-  no auctions/trading/mortgages (forced half-price sales instead), max 4 houses, an
-  approximated rent curve, 60 rounds then net worth decides. Spoiler from the
-  simulations: without trading, every sensible buying policy lands within a few
-  percent — the dice own this board.
-- **Settlers of Catan** — runs on the **real [catanatron](https://github.com/bcollazo/catanatron)
-  engine**, not a hand-rolled reimplementation. The browser is a thin client over a small
-  Flask wrapper (`server/`); catanatron computes every rule, move and tick. This unlocks
-  the full game — development cards, **player-to-player trading**, the lot — and a richer,
-  more interactive strategy interface (see [Catan Lab](#catan-lab) below).
-
-## Getting started
-
-The card-stack games (Tic-Tac-Toe, Snakes, Mädn, Monopoly) are pure client-side JS —
-double-click, e.g.
-```bash
-open index.html
-```
-
-**Catan** needs its engine, which is pinned as a **git submodule** at `catanatron/`
-(upstream [bcollazo/catanatron](https://github.com/bcollazo/catanatron)). Fetch it before
-running — either clone with `--recurse-submodules`, or, in an existing checkout:
+Strategy Lab is a set of games built for exploring strategy. You play
+against bots with personalities, then look at the same position through
+*lenses*: the odds of every roll, the game tree, Nash equilibria, a
+learning agent's value function. You write down what you found as rule
+cards and test them on 100 games. Every idea you meet lands on your
+cheatsheet.
 
 ```bash
-git submodule update --init catanatron
+git submodule update --init catanatron Gymnasium
+uv run python -m strategy_lab serve --dev      # http://127.0.0.1:8000
 ```
 
-Dependencies (that catanatron submodule + Flask) are declared in `pyproject.toml` and
-managed with [uv](https://docs.astral.sh/uv/); one command serves both the static app
-*and* the catanatron API:
+## What is inside
+
+- **A learning path in seven chapters**: Chance, Game Trees, Luck Meets
+  Skill, Outguess, Hidden Cards, Learning Machines, Many Players. Games open
+  one after another; *Explorer mode* opens all of them.
+- **A tutorial**: four intro slides, then short coach marks.
+- **Your history**: every finished game is kept in `data/history.jsonl`,
+  with records per game and replays.
+- **Lenses**: Cards, Odds, Game tree, Nash, Learn, Model and Trading.
+- **Skins**: Lab (dark), Paper (hand-drawn) and Minimal (characters only).
+- **Engines**: native Python games, plus adapters for
+  [OpenSpiel](https://github.com/google-deepmind/open_spiel) (chess, skat,
+  backgammon, Kuhn poker, our Doppelkopf), Gymnasium (CartPole) and
+  catanatron (Catan).
+
+## Built on inheritance
+
+```
+Game                       strategy_lab/core/game.py (OpenSpiel-shaped API)
+ +- MNKGame                k in a row: Tic-Tac-Toe, Connect Four
+ +- DiceGame               Pig, Qwixx
+ |   +- RollAndMoveGame    Snakes & Ladders, Mensch aergere dich nicht, ...
+ +- MatrixGame             Rock-Paper-Scissors, Prisoner's Dilemma, ...
+ +- SinglePlayerGame       bandit, FrozenLake, Cliff Walking
+ +- SpielGame / GymGame    external engines
+```
+
+Views follow the same idea in the browser: `GridView`, `DiceView`,
+`MatrixView` and more draw scene parts, and skins subclass them.
+
+## Add a game and iterate while playing
 
 ```bash
-cd strategy-lab
-uv run python server/app.py           # http://localhost:8000  → Catan Lab
+uv run python -m strategy_lab new my_game     # a playable draft in the Workbench
+uv run python -m strategy_lab serve --dev     # edit, save, keep playing
+uv run python -m strategy_lab check my_game   # conformance tests
 ```
 
-`uv run` creates the `.venv` and installs everything on first use (catanatron is wired as
-an editable path dependency on the submodule, so the engine source under `catanatron/`
-drives every rule). Run `uv sync` first if you'd rather set the environment up ahead of
-time.
+Saving the file restarts the server and replays your open game under the
+new rules. See `docs/adding-a-game.md`.
 
-### Tests
+## Documentation and tests
 
 ```bash
-node test/smoke.js                        # JS games (engine + card logic)
-uv run python server/test_policy.py       # the trading policy (metric, veto, symmetry)
+uv run sphinx-build -b html docs docs/_build/html
+uv run pytest -q
 ```
 
-<a name="catan-lab"></a>
-
-## Catan Lab — (In development)
-
-Open `catan.html` (or the Catan card on the home page). The premise is the same as the rest of
-Strategy Lab — *design the policy, don't play the moves* — but here the policy is a
-**parameterised value/trade function** instead of a card stack, and the rules come from
-catanatron.
-
-Your bot plays a catanatron **base brain** for building (`VALUE` by default, or
-`ALPHABETA` search), and trades through a **state-dependent brain** that is the point of
-this lab:
-
-- **A position-strength metric** `strength(player) ∈ [0,1]` — the same function for every
-  seat (a relabelling symmetry), blending closeness-to-victory, production and reach. This
-  is what "how strong is this position" means, derived from catanatron's own features.
-- **A non-linear trade coefficient** `λ(opponent_strength)`. Every swap is judged by
-  `net = my_gain − λ · their_gain`. λ is ~0 against a weak rival (pure self-interest) and
-  rises (logistic) as the rival gets strong, so you stop handing value to the leader — and
-  a **hard veto** refuses *any* trade with a player within N VP of winning.
-- **Symmetry compression**: decisions key off *relative* quantities, not absolute hands.
-  "If the trade partner is 2 VP ahead, demand ~1 extra resource" is literally the
-  `premium_per_vp` term, so equivalent positions get equivalent behaviour.
-- **A blocking preference** `block_weight` — with the `VALUE` brain, candidate builds are
-  re-ranked by how many expansion nodes they deny an opponent, so the bot will "build a
-  road/settlement to block" when the knob is up. Zero leaves the pure value function; it
-  never overrides a game-winning move.
-
-Three interactive views:
-
-- **Metric & trade tuner** — sliders for every weight and λ-shape parameter, with the
-  coefficient curve redrawn live, plus a one-click batch simulation (win bars + trade
-  tally) against any catanatron opponent
-  (`RANDOM`/`WEIGHTED`/`VALUE`/`ALPHABETA`/`MCTS`/`TRADER`).
-- **Decision boundary explorer** — the accept-a-trade rule is a surface over several inputs
-  (opponent VP, your VP, opponent strength, each side's gain). Pick any two as axes and the
-  rest are held fixed; the surface is drawn as an interpolated heatmap of the deal's *slack*
-  (net − required), with the accept/refuse boundary as a contour and the hard veto hatched.
-  Preset "views" collapse the n-dimensional rule onto a chosen pair; every tuner slider
-  reshapes it live.
-- **Step-through play** — watch the policy decide ply-by-ply on a rendered board, every
-  move annotated with its reasoning; trades expand to show both players' strength, λ, the
-  gains, and the accept / reject / **veto** decision.
-
-The policy lives in `server/policy.py` (≈ a Catanatron `Player`); no Catan rules are
-reimplemented anywhere in this repo.
-
-## How a match works
-
-1. **Build your strategy** — a *priority list* of rule cards, read top to bottom each turn:
-   - **PICK** cards choose a move (e.g. "Finish it", "Headhunter").
-   - **AVOID** cards veto candidate moves for the cards below (e.g. "Snake dodger") —
-     unless that would veto everything.
-   - The first card that can decide, decides. If none can: a random legal move.
-2. **Pick a bot** — four personas per game, from random rookie to near-optimal. The bot's
-   stack is shown openly: study it, steal from it.
-3. **Simulate** — 100 games, starting player alternating. Every game gets its own RNG
-   seed, so any individual game can be re-simulated deterministically for the replay
-   viewer.
-4. **Read the stats** — win bars, momentum chart (cumulative lead), streaks,
-   first-mover split, a game-specific insight, and watchable sample replays.
-
-### Play mode (first draft)
-
-Every card-stack game's lab now has a **"Play it yourself -- turn by turn"** button: you
-take seat 0 and play against the chosen bot directly, instead of only simulating. A
-session is the same 100 games as a simulated match -- play as many by hand as you like,
-then hit **"Auto-finish N games"** and your card stack plays the remainder at simulation
-speed, with identical seeds and seat alternation to a simulated match. Tic-Tac-Toe takes
-clicks on the board itself; the other three games play through generic per-move buttons.
-
-While you play, a side panel offers two lenses, toggled live:
-
-- **Strategy cards** -- your stack, annotated with which card would decide *right now*
-  and what it would play. You explore the cards by playing them.
-- **RL / MDP** -- a skeleton of the coming reinforcement-learning view. For Tic-Tac-Toe
-  it defines the MDP (state = the board from the mover's perspective, 5478 reachable
-  states folded to 765 by symmetry; actions = the empty squares, folded into equivalence
-  classes; reward +1/0/-1 at the end, gamma = 1), shows symmetry folding live on the
-  current position ("N legal moves -> M real decisions"; the opening's 9 -> 3: center,
-  corner, edge), and carries short collapsible notes on game trees and entropy. The
-  other games show a placeholder for now. The MDP definition now comes from a shared
-  registry (js/mdp.js) -- every explorable game carries several candidate state spaces
-  (each flagged Markov / approx / not Markov), shown in a collapsed panel you can open
-  and switch; the choice persists per game.
-
-The RL *training* itself is **not implemented yet** -- but the backend engines now
-run live: the `Gymnasium/` submodule is the app's editable gymnasium dependency, and
-OpenSpiel runs via the `open-spiel` PyPI wheel pinned to the vendored `open_spiel/`
-submodule's version (see "play them live" below). Play mode lives in `js/play.js`
-(session + both lenses + pure D4 symmetry helpers, tested headlessly); `js/engine.js`
-now also exports `chooseMove` and `playGame` for it.
-
-### Browse games as MDPs -- and play them live
-
-The home page has a genre menu (Classic & solved / Board / Card / Atari / Classic
-control); chess, skat, doppelkopf, tetris, FrozenLake and CartPole are catalog
-entries -- each opens an explore view with a collapsible step-by-step **Rulebook**
-(expanded the first time you open a game), the changeable MDP panel and a "where
-history bites" note (chess: castling/en-passant/repetition live in history; tetris:
-the 7-bag piece memory -- though ALE's 2600 Tetris predates 7-bag; skat: card
-counting and bidding inference; doppelkopf: the hidden Re/Kontra team split;
-CartPole: the velocities ARE one step of compressed history).
-When the Flask server is running, the home page also lists the live Gymnasium registry
-from the vendored submodule via GET /api/gym/envs, and the explore view verifies each
-env id against it.
-
-With the server up, most of these are **actually playable** (js/env-play.js against
-server/envs.py):
-
-- **Gymnasium** (`POST /api/env/new|step|reset`): every registry env from the
-  `classic_control` and `toy_text` namespaces -- FrozenLake and CartPole have curated
-  entries, and every playable env id in the registry panel is clickable too. Step the
-  env yourself with named action buttons (toy_text envs render their ANSI board;
-  vector observations get labeled bars), or flip **policy: random** and watch a random
-  policy drive from the same state -- the policy-exploration hook. Envs needing extra
-  native deps (box2d, mujoco, ALE) stay browse-only.
-- **Qwixx** (`strategy_lab/Qwixx-v0`) is our own Gymnasium env, `server/qwixx_env.py`,
-  registered into the same registry under the `strategy_lab` namespace so it plays
-  through that exact path with no special cases. Four players, published Gamewright
-  rules (right-of-your-last-cross, the five-cross gate on the 12/2, the lock's bonus
-  cross and its simultaneity on one white sum, -5 penalties, two locks or a fourth
-  penalty ends it); you hold seat 0 and the other three are scripted bots defined
-  purely by how many numbers they will skip for a cross. Actions are `Discrete(45)`
-  -- 44 (row, number) crosses plus pass -- taken one mark per step, so an active
-  player's turn is a white-sum step and then a colour step; phases where you have no
-  legal cross are skipped, so every observation is a real decision. The env publishes
-  an `action_mask()`, which the gym template now uses in two places: `policy: random`
-  samples through it (so random play is *legal* Qwixx), and the browser greys out the
-  illegal buttons. `obs_mode` switches between the three state spaces of its catalog
-  panel (`counts` 19 / `sheet` 59 / `table` 194) and `reward_mode` between your own
-  score and your margin over the best opponent. Rules covered by
-  `server/test_qwixx.py`.
-- **OpenSpiel** (`POST /api/spiel/new|act`): **skat**, **chess** and **doppelkopf**
-  run on the real pyspiel engine (the PyPI wheel `open-spiel==1.6.15`, pinned to the
-  same version as the vendored `open_spiel/` submodule). Doppelkopf is our own game,
-  vendored at `./doppelkopf/` and registered with pyspiel as `python_doppelkopf`;
-  its two special rules (second Dulle beats the first, Karlchen) are per-game
-  checkboxes forwarded as OpenSpiel game parameters. You hold one seat, the other
-  seats are random bots, chance nodes (dealing) resolve automatically; play a legal
-  move, let a random move play for you, or autoplay a whole deal to its real scoring.
-  Verified end-to-end: a full skat deal (bidding -> tricks -> declarer scoring),
-  chess openings, and a doppelkopf deal with its rule toggles, all through the actual
-  UI module over HTTP (server/test_envs.py covers the API; the tetris entry stays
-  browse-only until ale-py lands).
-
-## Architecture
-
-```
-index.html               script tags define which card-stack games are loaded
-css/style.css            shared theme;  css/catan-lab.css  styles the Catan Lab
-js/engine.js             policy evaluation + match simulation (game-agnostic, DOM-free)
-js/games/*.js            one self-registering file per card-stack game
-js/play.js               play mode: hand-played sessions, both lenses, pure D4 symmetry helpers
-js/mdp.js                the MDP registry: schema, Markov flags, the collapsed/changeable panel
-js/gym-games.js          catalog entries: tictactoe, chess, tetris, skat, doppelkopf, backgammon, qwixx, frozenlake, cartpole (+ rulebooks)
-doppelkopf/              our own OpenSpiel game (python_doppelkopf) + bots, search, tests
-js/env-play.js           live play panel: gym envs + open_spiel seats vs random bots
-js/ui.js                 home gallery, lab, charts, replay viewer, persistence
-test/smoke.js            headless Node tests of engine + card-stack games
-
-catan.html               the Catan Lab page (thin client; needs the Flask server)
-js/catan-lab.js          tuner + live λ curve + step-through board (talks to /api)
-js/games/catan-board.js  generated board geometry (see tools/dump_catan_board.py)
-server/app.py            Flask wrapper around catanatron (simulate / game / tick / defaults)
-server/policy.py         the position metric + non-linear trade coefficient + Player
-server/test_policy.py    metric symmetry, leader-veto, real-game trade tests
-server/test_gym_api.py   Gymnasium registry API tests
-server/envs.py           play sessions: /api/env/* (gymnasium) + /api/spiel/* (open_spiel)
-server/qwixx_env.py      our own Gymnasium env: 4-player Qwixx vs scripted bots
-server/test_qwixx.py     Qwixx rules: locks, the five-cross gate, penalties, whole episodes
-server/test_envs.py      real engine round-trips: FrozenLake, CartPole, Qwixx, skat, chess
-tools/                   board-geometry generator (needs the cloned catanatron repo)
-catanatron/              git submodule (bcollazo/catanatron) — the engine, installed
-                         editable; drives all Catan rules
-Gymnasium/               git submodule -- installed editable; powers /api/env/* live play
-open_spiel/              git submodule -- reference source; pyspiel runs via the PyPI
-                         wheel pinned to this submodule's version (C++ core not built)
-pyproject.toml           uv project: Flask + catanatron (editable path dep); uv.lock pins it
-rust_cli_implementation/ an alternative take: a Rust TUI over the same catanatron bridge
-                         (has its own catanatron submodule + catan-server) — see its README
-```
-
-The engine and game files never touch the DOM except inside `renderState`, so all game
-logic runs headless under Node for testing.
-
-## Adding a game
-
-Create `js/games/yourgame.js`, call `StrategyLab.registerGame({...})`, and add a script
-tag in `index.html`. The interface:
-
-| Field | Meaning |
-| --- | --- |
-| `id, name, icon, level, tagline` | gallery metadata |
-| `rules` | the card palette: `{ id, name, icon, desc, kind }` plus `pick(state, candidates, seat, rng) → move\|null` for `kind:'pick'`, or `avoid(state, move, seat) → bool` for `kind:'avoid'` |
-| `botPresets` | `{ id, name, icon, stars, desc, ruleIds }` — ordered rule ids |
-| `initialState(rng, firstSeat)` | seats are always 0 = human, 1 = bot; pre-roll dice into the state if the game has chance |
-| `currentPlayer(state)` / `legalMoves(state)` | a turn = one decision; return `[]` to pass |
-| `applyMove(state, move, rng)` | **pure** — return a new state (use `StrategyLab.clone`), handle `move === null` as a pass, pre-roll the next dice |
-| `isTerminal(state)` / `winner(state)` | winner returns seat or `null` for a draw |
-| `maxTurns` + `timeoutWinner(state)` | safety cap for games that can stall |
-| `describeMove(state, move, seat)` | replay caption, without the actor ("rolls 6 — …") |
-| `renderState(state, el)` | draw the board into `el` (DOM/SVG, no interactivity needed) |
-| `insight(stats)` | optional: game-specific takeaway shown on the results screen |
-
-Keep states JSON-serializable (plain objects/arrays) — the engine deep-copies them with
-`JSON.parse(JSON.stringify(...))` and replays rely on deterministic RNG, so never call
-`Math.random()` inside game code; always use the passed `rng`.
-
-Games with auto-resolving phases (Monopoly's dice turns, Catan's production) keep an
-event `log` array inside the state and show it in `renderState`, so replays stay
-readable even when several automatic events happen between two decisions.
-
-### Rust CLI implementation
-The pure `.js` framework seemed for me to be non-optimal, therefore I drafted an additional Rust,
-CLI implementation, using three different policy management methods. Strategy, Value function,
-Symmetry. For more details see [README](rust_cli_implementation/README.md).
-
-
-### Roadmap ideas
-
-- **The Game of Life**, **Backgammon** (a rich AVOID/PICK space: blots, primes, races).
-- Catan: **learn** the metric weights and λ-curve (the coefficients are already a
-  parameter vector — hill-climb or CMA-ES over win rate), and let you offer trades by hand
-  in the step-through view.
-- **Auto-tuner** — hill-climb over card orders and show *which* permutation of your
-  cards performs best: policy iteration made visible.
-- **Wire the RL lens** -- connect play mode's RL / MDP panel to a Python backend on the
-  vendored Gymnasium / OpenSpiel submodules, so an agent trains per game and the four
-  simple games' MDPs get defined one game at a time.
-- **Elo ladder** — persistent ratings for your strategies across sessions.
+The `doppelkopf/` package (our OpenSpiel Doppelkopf with its own bots and
+web UI) and `rust_cli_implementation/` (a terminal take on the same ideas)
+live alongside the app.
